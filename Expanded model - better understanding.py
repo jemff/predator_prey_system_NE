@@ -177,9 +177,25 @@ for i in range(8,11): #Original 12
     flux_and_strat_storer.append(flux_and_strat)
     solution_storer.append(sol)
 
+
+flux_diff_n = np.zeros(len(solution_storer))
+flux_diff_p = np.zeros(len(solution_storer))
+for i in range(len(solution_storer)):
+    flux_diff_n[i] = np.sum(0.01 * static_store_flux[i][-2]) - np.sum(flux_and_strat_storer[i][-2] * 0.01)
+    flux_diff_p[i] = np.sum(0.01 * static_store_flux[i][-1]) - np.sum(flux_and_strat_storer[i][-1] * 0.01)
+
+plt.plot(flux_diff_n, 'x', label = 'Flux diff n')
+plt.plot(flux_diff_p, 'x', label = 'Flux diff p')
+plt.show()
+
 plt.plot(tim, flux_and_strat[-2])
 plt.plot(time_b, flux_and_strat_bas[-2])
 plt.plot(tim, flux_and_strat[-1])
 plt.plot(time_b, flux_and_strat_bas[-1])
+
+plt.show()
+
+plt.plot(time_b, flux_and_strat[-3])
+plt.plot(time_b, flux_and_strat[-4])
 
 plt.show()
