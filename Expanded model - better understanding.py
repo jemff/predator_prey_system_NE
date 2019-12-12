@@ -103,7 +103,7 @@ def rk23_w_flux(t_final, y0, step_size, f):
 
 
 
-cbar = 9*1.1
+cbar = 4*1.1
 cmax = 2
 mu0 = 0.4 
 mu1 = 0.2
@@ -118,7 +118,7 @@ opt_pred = True
 initial_conditions_5 =  [cmax, mu0, mu1, eps, cp, phi0, phi1, cbar, lam, opt_prey, opt_pred]
 
 t_start = 0
-t_end = 50
+t_end = 20
 
 init = np.array([0.8, 0.5, 0.5])
 time_b, sol_basic, flux_and_strat_bas = rk23_w_flux(t_end, init, 0.01, lambda y :
@@ -141,11 +141,9 @@ init_0 = np.array([sol_basic[0,-1], sol_basic[1,-1], sol_basic[2,-1]])
 static_store = []
 static_store_flux = []
 
-for i in range(8,11):
-    initial_conditions_5 =  [cmax, mu0, mu1, eps, cp, phi0, phi1, (i+1)*1.1, lam, opt_prey, opt_pred]
-    t_start = 0
-    t_end = 120
-    if i is 8:
+for i in range(0,60):
+    initial_conditions_5 =  [cmax, mu0, mu1, eps, cp, phi0, phi1, 4.4+i*0.1, lam, opt_prey, opt_pred]
+    if i is 0:
         init = init_0
     else:
         init = np.array([sol_basic[0,-1], sol_basic[1,-1], sol_basic[2,-1]])
@@ -162,11 +160,11 @@ for i in range(8,11):
 solution_storer = []
 flux_and_strat_storer = []
 
-for i in range(8,11): #Original 12
-    initial_conditions_5 =  [cmax, mu0, mu1, eps, cp, phi0, phi1, (i+1)*1.1, lam, opt_prey, opt_pred]
+for i in range(0, 60):
+    initial_conditions_5 =  [cmax, mu0, mu1, eps, cp, phi0, phi1, 4.4+0.1*i, lam, opt_prey, opt_pred]
     t_start = 0
-    t_end = 120
-    if i is 8:
+    t_end = 20
+    if i is 0:
         init = init_0
     else:
         init = np.array([sol[0,-1], sol[1,-1], sol[2,-1]])
@@ -180,22 +178,18 @@ for i in range(8,11): #Original 12
 
 flux_diff_n = np.zeros(len(solution_storer))
 flux_diff_p = np.zeros(len(solution_storer))
+resource = np.zeros(len(solution_storer))
 for i in range(len(solution_storer)):
     flux_diff_n[i] = np.sum(0.01 * static_store_flux[i][-2]) - np.sum(flux_and_strat_storer[i][-2] * 0.01)
     flux_diff_p[i] = np.sum(0.01 * static_store_flux[i][-1]) - np.sum(flux_and_strat_storer[i][-1] * 0.01)
+    resource[i] = 4.4+i*0.1
 
-plt.plot(flux_diff_n, 'x', label = 'Flux diff n')
-plt.plot(flux_diff_p, 'x', label = 'Flux diff p')
+plt.plot(resource, flux_diff_n, 'x', label = 'Flux diff n')
+plt.plot(resource, flux_diff_p, 'x', label = 'Flux diff p')
+plt.legend(loc = 'lower left')
 plt.show()
 
-plt.plot(tim, flux_and_strat[-2])
-plt.plot(time_b, flux_and_strat_bas[-2])
-plt.plot(tim, flux_and_strat[-1])
-plt.plot(time_b, flux_and_strat_bas[-1])
-
-plt.show()
-
-plt.plot(time_b, flux_and_strat[-3])
-plt.plot(time_b, flux_and_strat[-4])
-
+plt.plot(resource, flux_and_strat_storer[:][1], 'x', label = 'taup')
+plt.plot(resource, flux_and_strat_storer[:][0], 'x', label = 'taun')
+plt.legend(loc = 'lower left')
 plt.show()
