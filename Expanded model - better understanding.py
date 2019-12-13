@@ -42,7 +42,7 @@ def optimal_behavior_trajectories(t, y, cmax, mu0, mu1, eps, cp, phi0, phi1, cba
     taun = 1
     taup_opt = 1
     if opt_prey is True and opt_pred is True:
-        taun = min(max(optm.minimize(lambda test: -taun_fitness_II(test, C, P, N), 0.5).x[0],0),1)
+        taun = min(max(optm.minimize(lambda test: -taun_fitness_II(test, C, P, N), 0.5).x[0], 0), 1)
 
     elif opt_prey is True:
         #print(optm.minimize(lambda s_prey: -(2*s_prey*C/(s_prey*C+cmax) - taup_opt * s_prey*P/(taup_opt*s_prey*N + cp) - mu0*s_prey - mu1), 0.5).x[0])
@@ -101,24 +101,22 @@ def rk23_w_flux(t_final, y0, step_size, f):
 
     return t, solution, flux_and_strat
 
-
-
 cbar = 4*1.1
 cmax = 2
 mu0 = 0.4 
 mu1 = 0.2
 eps = 0.5
-cp = 2
-phi0 = 0.20
+epsn = 0.5
+cp = 1.5
+phi0 = 0.2
 phi1 = 0.4 
-cbar = 3
 lam = 0.5
 opt_prey = True
 opt_pred = True
 initial_conditions_5 =  [cmax, mu0, mu1, eps, cp, phi0, phi1, cbar, lam, opt_prey, opt_pred]
 
 t_start = 0
-t_end = 20
+t_end = 60
 
 init = np.array([0.8, 0.5, 0.5])
 time_b, sol_basic, flux_and_strat_bas = rk23_w_flux(t_end, init, 0.01, lambda y :
@@ -134,14 +132,10 @@ init_0 = np.array([sol_basic[0,-1], sol_basic[1,-1], sol_basic[2,-1]])
 
 
 
-
-# In[159]:
-
-
 static_store = []
 static_store_flux = []
 
-for i in range(0,60):
+for i in range(0,250):
     initial_conditions_5 =  [cmax, mu0, mu1, eps, cp, phi0, phi1, 4.4+i*0.1, lam, opt_prey, opt_pred]
     if i is 0:
         init = init_0
@@ -160,10 +154,8 @@ for i in range(0,60):
 solution_storer = []
 flux_and_strat_storer = []
 
-for i in range(0, 60):
+for i in range(0, 250):
     initial_conditions_5 =  [cmax, mu0, mu1, eps, cp, phi0, phi1, 4.4+0.1*i, lam, opt_prey, opt_pred]
-    t_start = 0
-    t_end = 20
     if i is 0:
         init = init_0
     else:
@@ -178,10 +170,16 @@ for i in range(0, 60):
 
 flux_diff_n = np.zeros(len(solution_storer))
 flux_diff_p = np.zeros(len(solution_storer))
+taup_vec = np.zeros(len(solution_storer))
+taun_vec = np.zeros(len(solution_storer))
+
+
 resource = np.zeros(len(solution_storer))
 for i in range(len(solution_storer)):
     flux_diff_n[i] = np.sum(0.01 * static_store_flux[i][-2]) - np.sum(flux_and_strat_storer[i][-2] * 0.01)
     flux_diff_p[i] = np.sum(0.01 * static_store_flux[i][-1]) - np.sum(flux_and_strat_storer[i][-1] * 0.01)
+    taup_vec[i] = flux_and_strat_storer[i][1,-1]
+    taun_vec[i] = flux_and_strat_storer[i][0,-1]
     resource[i] = 4.4+i*0.1
 
 plt.plot(resource, flux_diff_n, 'x', label = 'Flux diff n')
@@ -189,7 +187,9 @@ plt.plot(resource, flux_diff_p, 'x', label = 'Flux diff p')
 plt.legend(loc = 'lower left')
 plt.show()
 
-plt.plot(resource, flux_and_strat_storer[:][1], 'x', label = 'taup')
-plt.plot(resource, flux_and_strat_storer[:][0], 'x', label = 'taun')
+
+
+plt.plot(resource, taup_vec, 'x', label = 'taup')
+plt.plot(resource, taun_vec, 'x', label = 'taun')
 plt.legend(loc = 'lower left')
 plt.show()
