@@ -43,6 +43,9 @@ def optimal_behavior_trajectories(t, y, cmax, mu0, mu1, eps, epsn, cp, phi0, phi
     P = y[2]
     taun = 1
     taup_opt = 1
+
+    bnds = (0, 1)
+
     if opt_prey is True and opt_pred is True:
         taun = min(max(optm.minimize(lambda test: -taun_fitness_II(test, C, P, N), np.array([taun_old]), method = 'L-BFGS-B',
                                      bounds = [bnds]).x[0], 0.00001), 1)
@@ -62,6 +65,41 @@ def optimal_behavior_trajectories(t, y, cmax, mu0, mu1, eps, epsn, cp, phi0, phi
     Pdot = P*(cp*eps*taup_opt*taun*N/(N*taup_opt*taun + cp) - phi0*taup_opt - phi1)
     return np.array([Cdot, Ndot, Pdot, taun, taup_opt, flux_c_to_n, flux_n_to_p])
 
+
+
+
+def opt_taun_find(y, params):
+    C, N, P = y[0], y[1], y[2]
+
+
+    taun_fitness_II = lambda s_prey: \
+        epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * taup(s_prey, N) * s_prey * P / (
+                    taup(s_prey, N) * s_prey * N + cp) \
+        - mu0 * s_prey - mu1
+    taun_fitness_II_d = lambda s_prey: epsn*cmax**2*C/(s_prey*C+cmax)**2 \
+                                       - (N**2*cp*(eps/(phi0*N))**(1/2)*s_prey**(5/2))**(-1) -mu0
+
+    max_cands = optm.find_roots(taun_fitness_II_d).root
+    loc = np.where(taun_fitness_II(max_cands) == np.max(taun_fitness_II(max_cands)))[0]
+
+    return max_cands[loc]
+
+
+def strat_finder(y, params, opt_prey = True, opt_pred = True):
+    C, N, P = y[0], y[1], y[2]
+    if opt_prey is True and opt_pred is True:
+        roots = optm.find_roots()
+        taun_fitness_II(roots)
+        taun = min(max(opt_taun_find(y, params)), 1)
+        taup_opt = min(max(taup(taun, N),0),1)
+
+
+    elif opt_prey is True and opt_pred is False:
+        taun = min(max(optm.minimize(lambda s_prey: -(cmax*epsn*s_prey*C/(s_prey*C+cmax) - cp*taup_opt * s_prey*P/(taup_opt*s_prey*N + cp) - mu0*s_prey - mu1), 0.5).x[0],0),1)
+    elif opt_pred is True and opt_prey is False:
+        taup_opt = min(max(taup(taun, N),0),1)
+
+    return taun, taup_opt
 
 def optimal_behavior_trajectories_basic(t, y, cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, prey_opt, pred_opt, seasons = False, taun_old = 0.5):
     C = y[0]
@@ -105,7 +143,17 @@ def rk23_w_flux(t_final, y0, step_size, f):
     return t, solution, flux_and_strat
 
 
-def semi_implicit_euler(t, y, step_size, f:)
+def semi_implicit_euler(t, y, step_size, f):
+    solution = np.zeros((y0.shape[0], int(t_final / step_size)))
+    flux = np.zeros((2,int(t_final / step_size)))
+    strat = np.zeros((2,int(t_final / step_size)))
+    t = np.zeros(int(t_final / step_size))
+    solution[:, 0] = y0
+    for i in range(1, int(t_final / step_size)):
+        taun_best, taup_best = strat_finder(solution[:,i-1])
+        solution[:, i] = solution[:,i-1] + step_size*f(solution[:, i - 1], taun_best, taup_best)
+
+    return t, solution, flux, strat
 
 base = 5
 its = 640
