@@ -45,14 +45,13 @@ def static_eq_calc(params):
 
     phitild = phi0+phi1
     mutild = mu0 + mu1
-    N_star = 1.5 #-(epsn*cmax*lam + cp/(phitild*eps))/(cmax*epsn-cp/phitild-mutild)
+    N_star = phitild*cp/(cp*eps-phitild) #-(epsn*cmax*lam + cp/(phitild*eps))/(cmax*epsn-cp/phitild-mutild)
     btild = cmax*(1+N_star/lam) - cbar
 
     C_star = 1/2*(-btild+np.sqrt(btild**2 + 4*cbar*cmax))
-    #1/2*(-cmax*(1+N_star/lam - cbar) - np.sqrt((cmax*(N_star/lam + 1+cbar)**2-4*cbar*cmax*N_star/lam)))
 
-    P_star = cp/phitild * (N_star*eps+1)
-
+    P_star = (1/cp+1/N_star)*(epsn*lam*(cbar-C_star)-mutild*N_star)
+#    print(np.array([C_star, N_star, P_star]))
     return np.array([C_star, N_star, P_star])
 
 def opt_taup_find(y, taun, params):
@@ -178,3 +177,6 @@ print(np.linalg.eig(jac)[0])
 print(np.linalg.eig(jac_stat)[0])
 #print(np.linalg.eig(jac))
 
+eq_stat = static_eq_calc(params_ext)
+#print(eq_stat.shape)
+print(optimal_behavior_trajectories(eq_stat, params_ext, opt_pred=False, opt_prey=False))
