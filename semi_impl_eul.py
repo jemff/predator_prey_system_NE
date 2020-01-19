@@ -90,31 +90,9 @@ def opt_taun_find(y, params):
 
     else:
         maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
-        #       print(taun_fitness_II_d(0.0001), taun_fitness_II_d(maxi_mill))
         max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[0.001, maxi_mill], method='brentq').root
 
-    #    loc = np.argmax(taun_fitness_II(linsp))
-#   print(lambda_inc(linsp))
-#   print(taun_fitness_II(linsp))
-
-#    max_cands = linsp[loc]
-#    print(max_cands)
     return max_cands
-
-#    comparison_numbs = (taun_fitness_II_d(linsp))
-#    if len(np.where(comparison_numbs > 0)[0]) is 0:
-#        t0 = taun_fitness_II(0)
-#        t1 = taun_fitness_II(1)
-#        if t0 > t1:
-#            max_cands = 0
-#        else:
-#            max_cands = 1
-
- #   else:
- #       maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
- #       print(taun_fitness_II_d(0.0001), taun_fitness_II_d(maxi_mill))
- #       max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[0.02, maxi_mill], method='brentq').root
-
 
 
 def optimal_behavior_trajectories(t, y, params, opt_prey = True, opt_pred=True, seasons = False, taun=1, taup=1):
@@ -149,12 +127,12 @@ def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_
         flux[:, i] = fwd[3:]
     return t, solution, flux, strat
 
-base = 14
-its = 1
+base = 60
+its = 0
 step_size = 1
 step_size_phi = 0.05
 cbar = base
-phi0_base = 0.4
+phi0_base = 0.2
 
 cmax = 2
 mu0 = 0.2
@@ -202,6 +180,7 @@ def dynamic_pred_prey(phi0_dyn, step_size=step_size, its=its, params=params_ext)
         tim_OG, sol_OG, flux_OG, strat_OG = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
             optimal_behavior_trajectories(t, y, params, taun=tn, taup=tp), params, opt_prey = False, opt_pred = False)
         pops[i] = sol[:,-1] #np.sum((sol-sol_OG)*0.001, axis = 1) #sol[:,-1] - sol_OG[:,-1]
+        plt.plot(tim, sol[0, :])
         strats[i] = strat[:, -1]
         if strats[i, 0] is 0 or strats[i, 1] is 0:
             print(strat)
@@ -210,44 +189,63 @@ def dynamic_pred_prey(phi0_dyn, step_size=step_size, its=its, params=params_ext)
     return np.hstack([strats, pops, fluxes])
 
 
-data_init = list(np.linspace(phi0_base, phi0_base+its*step_size_phi, its))
 
+if its > 0:
+    data_init = list(np.linspace(phi0_base, phi0_base + its * step_size_phi, its))
+    agents = 8
+    with Pool(processes = agents) as pool:
+        results = pool.map(dynamic_pred_prey, data_init, 1)
 
-agents = 8
-with Pool(processes = agents) as pool:
-    results = pool.map(dynamic_pred_prey, data_init, 1)
+    print(np.array(results).shape)
+    #st = dynamic_pred_prey(phi0_base, step_size=step_size, its=its, params=params_ext)
+    #print(st)
 
-print(np.array(results).shape)
-#st = dynamic_pred_prey(phi0_base, step_size=step_size, its=its, params=params_ext)
-#print(st)
+    results = np.array(results)
+    plt.imshow(results[:, :, 0], cmap='viridis')
+    plt.title('Prey strategy')
+    plt.colorbar()
+    plt.show()
 
-results = np.array(results)
-plt.imshow(results[:, :, 0], cmap='viridis')
-plt.title('Prey strategy')
-plt.colorbar()
-plt.show()
+    plt.imshow(results[:, :, 1], cmap='viridis')
+    plt.title('Predator strategy')
+    plt.colorbar()
+    plt.show()
 
-plt.imshow(results[:, :, 1], cmap='viridis')
-plt.title('Predator strategy')
-plt.colorbar()
-plt.show()
+    plt.imshow(results[:, :, 3], cmap='viridis')
+    plt.title('Prey pop')
+    plt.colorbar()
+    plt.show()
 
-plt.imshow(results[:, :, 3], cmap='viridis')
-plt.title('Prey pop')
-plt.colorbar()
-plt.show()
+    plt.imshow(results[:, :, 4], cmap='viridis')
+    plt.title('Predator pop')
+    plt.colorbar()
+    plt.show()
 
-plt.imshow(results[:, :, 4], cmap='viridis')
-plt.title('Predator pop')
-plt.colorbar()
-plt.show()
+    plt.imshow(results[:, :, 5], cmap='viridis')
+    plt.title('Flux, 0 to 1')
+    plt.colorbar()
+    plt.show()
 
-plt.imshow(results[:, :, 5], cmap='viridis')
-plt.title('Flux, 0 to 1')
-plt.colorbar()
-plt.show()
+    plt.imshow(results[:, :, 6], cmap='viridis')
+    plt.title('Flux, 1 to 2')
+    plt.colorbar()
+    plt.show()
 
-plt.imshow(results[:, :, 6], cmap='viridis')
-plt.title('Flux, 1 to 2')
-plt.colorbar()
-plt.show()
+t_end = 100
+init = np.array([30.02380589, 20.16997066, 5.26961184])
+tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
+optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=True, opt_pred=True)
+
+plt.figure()
+plt.plot(tim, sol[1,:], label = 'Prey')
+plt.plot(tim, sol[2,:], label = 'Predator')
+plt.xlabel("Days")
+plt.ylabel("kg/m^3")
+plt.savefig("Indsvingning.png")
+
+plt.figure()
+plt.plot(tim, strat[0,:], label = "Prey strategy")
+plt.plot(tim, strat[1,:], label = "Predator strategy")
+plt.xlabel("Days")
+plt.ylabel("Intensity")
+plt.savefig("Indsvingning_strat.png")

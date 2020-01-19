@@ -113,10 +113,12 @@ def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True):
     Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + cp) - phi0*taup - phi1)
     return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
 
-base = 90
-its = 16
-step_size = 1
-step_size_phi = 0.05
+
+
+base = 60
+its = 120
+step_size = 0.5
+step_size_phi = 0.00125
 cbar = base
 phi0_base = 0.4
 
@@ -137,9 +139,26 @@ opt_pred = True
 
 params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0':phi0, 'phi1': phi1,
           'resource': base, 'lam':lam}
+manual_max = False
+if manual_max is True:
+    for i in range(int(base*10)):
+        for j in range(int(base*10)):
+            for k in range(int(base*10)):
+                test_num = np.array([0.1+0.1*i, 0.1+0.1*j, 0.1+0.1*k])
+                is_opt = np.abs(optimal_behavior_trajectories(test_num, params_ext))
+                if np.sum(is_opt) < 0.5*10**(-1):
+                    print(test_num)
 
-sol = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1/2*(base), 1/2*base]), method = 'hybr')
-#sol_broy1 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1/2*(base), 1/4*(base)]), method = 'broyden1')
+    print("I'm done")
+
+eq_stat = static_eq_calc(params_ext)
+#sol_4 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([base, base, 4/10*base]), method = 'hybr') #Apparently only three real roots.
+
+sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, base, base]), method = 'hybr')
+#sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([12.24914961,  0.8,  0.98489586]), method = 'hybr')
+sol_2 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1/2*(base), 1/6*base]), method = 'hybr')
+sol = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = eq_stat, method = 'hybr')
+sol_4 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([12.24914961,  0.8,  0.98489586]), method = 'broyden1')
 #sol_hybr = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1/2*(base), 1/4*(base)]), method = 'hybr')
 #sol_hybr = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = sol.x, method = 'hybr')
 
@@ -147,36 +166,129 @@ sol = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.
 #sol = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1.5, 1.5]), method = 'krylov')
 sol_static = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False), x0 = np.array([2/3*base, 1.5, 1.5]), method = 'hybr')
 
-h = 0.0001
+h = 0.00005
 jac = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol.x, h)
-jac_stat = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False), sol_static.x, h)
+jac_stat = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False), eq_stat, h)
+jac_2 = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol_2.x, h)
+jac_3 = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol_3.x, h)
+jac_4 = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol_4.x, h)
 
-#print(sol, "Krylov")
-#print(sol_broy1, "Broyden1")
-#print(sol_hybr, "Hybrid")
 
-#rmat = np.zeros((3, 3))
-#rmat[0] = sol_hybr.r[0:3]
-#rmat[1,1:] = sol_hybr.r[3:5]
-#rmat[2,2] = sol_hybr.r[-1]
-##print(sol_hybr.r, rmat)
-#jac = np.dot(sol_hybr.fjac, rmat)
-#rmat[0] = sol_static.r[0:3]
-#rmat[1,1:] = sol_static.r[3:5]
-#rmat[2,2] = sol_static.r[-1]
-#jac_stat = np.dot(sol_static.fjac, rmat)
-
-#eq_stat = static_eq_calc(params_ext)
-#print(eq_stat)
-#print(optimal_behavior_trajectories(eq_stat, params_ext, opt_pred = False, opt_prey = False))
 print(sol)
-print(strat_finder(sol.x, params_ext))
-print(sol_static)
+print(sol.message, sol.x, "Sol 1")
+print(sol_2.message, sol_2.x, "Sol 2")
+print(sol_3.message, sol_3.x, "Sol 3")
+#print(sol_3)
+print(sol_4.message, sol_4.x, "SOL FOUR")
+
+#sol_final = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False)/((y-sol.x)*(y-sol_2.x)*(y-sol_3.x)*(y-sol_4.x)), x0 = np.array([base,base,base]), method = 'hybr')
+
+#print(sol_final, "DER ENDLÖSUNG")
+#print(strat_finder(sol.x, params_ext))
+print(sol_static.x)
 #print(jac)
-print(np.linalg.eig(jac)[0])
+print(np.linalg.eig(jac)[0], "Jac1")
+print(np.linalg.eig(jac_2)[0], "Jac2")
+print(np.linalg.eig(jac_3)[0], "Jac3")
+print(np.linalg.eig(jac_4)[0], "Jac4")
+
+
 print(np.linalg.eig(jac_stat)[0])
 #print(np.linalg.eig(jac))
 
 eq_stat = static_eq_calc(params_ext)
 #print(eq_stat.shape)
-print(optimal_behavior_trajectories(eq_stat, params_ext, opt_pred=False, opt_prey=False))
+#print(optimal_behavior_trajectories(eq_stat, params_ext, opt_pred=False, opt_prey=False))
+
+if its > 0:
+    taun_grid = np.zeros((its, its))
+    taup_grid = np.zeros((its, its))
+    res_nums = np.zeros((its, its))
+    prey_nums = np.zeros((its, its))
+    pred_nums = np.zeros((its, its))
+    start_point = np.copy(sol_3.x)
+    eigen_max = np.zeros((its, its))
+    x_ext = np.zeros(3)
+    x_prev = np.zeros(3)
+
+
+    for i in range(its):
+        params_ext['resource'] = base + step_size*i
+        if i is 0:
+            x_ext = np.copy(start_point)
+ #       else:
+ #           x_ext = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=2*x_ext, method='hybr').x
+    #    jac_temp = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), x_ext, h)
+    #    print(np.linalg.eig(jac_temp)[0])
+        for j in range(its):
+            params_ext['phi0'] = phi0_base+j*step_size_phi
+            if j is 0:
+                x_prev = np.copy(x_ext)
+            else:
+                sol_temp = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=2*x_prev, method='hybr')
+                #print(sol_temp.message)
+                x_prev = sol_temp.x
+                #print(x_prev, i, j, params_ext['phi0'])
+
+            jac_temp = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), x_prev, h)
+            #print(np.linalg.eig(jac_temp)[0], x_prev, params_ext["phi0"], params_ext["resource"])
+#            print(np.real(np.linalg.eig(jac_temp)[0].max()))
+            eigen_max[i, j] = np.real(np.linalg.eig(jac_temp)[0].max())
+            res_nums[i, j] = x_prev[0]
+            prey_nums[i, j] = x_prev[1]
+            pred_nums[i, j] = x_prev[2]
+            taun_grid[i, j], taup_grid[i, j] = strat_finder(x_prev, params_ext)
+#            if eigen_max[i, j] > 0:
+#                print("Oh no!")
+
+    ran = [base, base+its*step_size, 200*phi0_base, 200*(phi0_base+its*step_size_phi)]
+    print("Ran", ran)
+    plt.imshow(res_nums, cmap='Reds', extent =ran)
+    plt.title('Resource kg/m^3')
+    plt.colorbar()
+    plt.xlabel("Max resource in kg m/3")
+    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
+    plt.savefig("resource_conc.png")
+    plt.show()
+
+    plt.imshow(prey_nums, cmap='Reds', extent =ran)
+    plt.title('Prey kg/m^3')
+    plt.colorbar()
+    plt.xlabel("Max resource in kg m/3")
+    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
+
+    plt.savefig("prey_conc.png")
+    plt.show()
+
+    plt.imshow(pred_nums, cmap='Reds', extent =ran)
+    plt.title('Pred kg/m^3')
+    plt.colorbar()
+    plt.xlabel("Max resource in kg m/3")
+    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
+    plt.show()
+
+    plt.imshow(taun_grid, cmap='Reds', extent =ran)
+    plt.title('Prey foraging intensity')
+    plt.colorbar()
+    plt.xlabel("Max resource in kg m/3")
+    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
+    plt.savefig("pred_conc.png")
+    plt.show()
+
+    plt.imshow(taup_grid, cmap='Reds', extent =ran)
+    plt.title('Predator foraging intensity')
+    plt.colorbar()
+    plt.xlabel("Max resource in kg m/3")
+    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
+
+    plt.savefig("pred_conc.png")
+    plt.show()
+
+    plt.imshow(eigen_max, cmap='Reds', extent =ran)
+    plt.title('Eigenvalues')
+    plt.colorbar()
+    plt.xlabel("Max resource in kg m/3")
+    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
+
+    plt.savefig("Eigenvalues.png")
+    plt.show()

@@ -4,18 +4,17 @@ from scipy import optimize as optm
 from multiprocessing import Pool
 
 
-
 class PredatorPrey:
-    def __init__(self, params, iterations, h, timestep, opt_prey = True, opt_pred = True):
+    def __init__(self, params, iterations, h, timestep, step_size, opt_prey = True, opt_pred = True):
         self.params = params
         self.iterations = iterations
         self.h = h
         self.timestep = timestep
         self.opt_prey = opt_prey
         self.opt_pred = opt_pred
+        self.step_size = step_size
 
-
-    def optimal_behavior_trajectories(y, self):
+    def optimal_behavior_trajectories_implc(y, self):
         C = y[0]
         N = y[1]
         P = y[2]
@@ -26,6 +25,21 @@ class PredatorPrey:
                     taup * taun * N + cp) - mu0 * taun - mu1)
         Pdot = P * (cp * eps * taup * taun * N / (N * taup * taun + cp) - phi0 * taup - phi1)
         return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
+
+    def static_eq_calc(self):
+        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
+
+        phitild = phi0 + phi1
+        mutild = mu0 + mu1
+        N_star = phitild * cp / (
+                    cp * eps - phitild)  # -(epsn*cmax*lam + cp/(phitild*eps))/(cmax*epsn-cp/phitild-mutild)
+        btild = cmax * (1 + N_star / lam) - cbar
+
+        C_star = 1 / 2 * (-btild + np.sqrt(btild ** 2 + 4 * cbar * cmax))
+
+        P_star = (1 / cp + 1 / N_star) * (epsn * lam * (cbar - C_star) - mutild * N_star)
+        #    print(np.array([C_star, N_star, P_star]))
+        return np.array([C_star, N_star, P_star])
 
     def jacobian_calculator(f, x, h):
         jac = np.zeros((x.shape[0], x.shape[0]))
@@ -47,33 +61,19 @@ class PredatorPrey:
         cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
 
         if self.opt_prey is True and self.opt_pred is True:
-            taun = min(max(opt_taun_find(y), 0), 1)
-            taup = min(max(opt_taup_find(y, taun), 0), 1)
+            taun = min(max(self.opt_taun_find(y), 0), 1)
+            taup = min(max(self.opt_taup_find(y, taun), 0), 1)
 
-        elif opt_prey is True and opt_pred is False:
+        elif self.opt_prey is True and self.opt_pred is False:
             taun = min(max(optm.minimize(lambda s_prey: -(cmax * epsn * s_prey * C / (s_prey * C + cmax)
                                                           - cp * taup * s_prey * P / (taup * s_prey * N + cp)
                                                           - mu0 * s_prey - mu1), 0.5).x[0], 0), 1)
 
-        elif opt_pred is True and opt_prey is False:
+        elif self.opt_pred is True and self.opt_prey is False:
             taup = min(max(taup(taun, N), 0), 1)
 
         return np.array([taun]), np.array([taup])
 
-    def static_eq_calc(params):
-        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-
-        phitild = phi0 + phi1
-        mutild = mu0 + mu1
-        N_star = 1.5  # -(epsn*cmax*lam + cp/(phitild*eps))/(cmax*epsn-cp/phitild-mutild)
-        btild = cmax * (1 + N_star / lam) - cbar
-
-        C_star = 1 / 2 * (-btild + np.sqrt(btild ** 2 + 4 * cbar * cmax))
-        # 1/2*(-cmax*(1+N_star/lam - cbar) - np.sqrt((cmax*(N_star/lam + 1+cbar)**2-4*cbar*cmax*N_star/lam)))
-
-        P_star = cp / phitild * (N_star * eps + 1)
-
-        return np.array([C_star, N_star, P_star])
 
     def opt_taup_find(y, taun, self):
         C = y[0]
@@ -122,12 +122,12 @@ class PredatorPrey:
 
         return max_cands
 
-    def optimal_behavior_trajectories(t, y, params, opt_prey=True, opt_pred=True, seasons=False, taun=1, taup=1):
+    def optimal_behavior_trajectories(self, t, y, taun=1, taup=1):
         C = y[0]
         N = y[1]
         P = y[2]
-        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-        if seasons is True:
+        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
+        if self.seasons is True:
             Cdot = lam * (cbar + 0.5 * cbar * np.cos(t * np.pi / 180) - C) - N * taun * C / (
                         taun * C + cmax)  # t is one month
         else:
@@ -139,14 +139,14 @@ class PredatorPrey:
         Pdot = P * (cp * eps * taup * taun * N / (N * taup * taun + cp) - phi0 * taup - phi1)
         return np.array([Cdot, Ndot, Pdot, flux_c_to_n, flux_n_to_p])
 
-    def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey=True, opt_pred=True):
+    def semi_implicit_euler(self, t_final, y0, step_size, f, params):
         solution = np.zeros((y0.shape[0], int(t_final / step_size)))
         flux = np.zeros((2, int(t_final / step_size)))
         strat = np.zeros((2, int(t_final / step_size)))
         t = np.zeros(int(t_final / step_size))
         solution[:, 0] = y0
         for i in range(1, int(t_final / step_size)):
-            taun_best, taup_best = strat_finder(solution[:, i - 1], params, opt_prey=opt_prey, opt_pred=opt_pred)
+            taun_best, taup_best = self.strat_finder(solution[:, i - 1], params)
             strat[:, i] = taun_best, taup_best
 
             fwd = f(t[i], solution[:, i - 1], taun_best, taup_best)
@@ -154,6 +154,39 @@ class PredatorPrey:
             solution[:, i] = solution[:, i - 1] + step_size * fwd[0:3]
             flux[:, i] = fwd[3:]
         return t, solution, flux, strat
+
+    def dynamic_pred_prey(self):
+        t_end = 120
+
+        init = np.array([0.8, 0.5, 0.5])
+        time_b, sol_basic, flux_bas, strat_bas = self.semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
+        self.optimal_behavior_trajectories(t, y, taun=tn, taup=tp), self.params)
+        base_case = np.array([sol_basic[0, -1], sol_basic[1, -1], sol_basic[2, -1]])
+
+        tim, sol, flux, strats = self.semi_implicit_euler(t_end, base_case, 0.001, lambda t, y, tn, tp:
+        self.optimal_behavior_trajectories(t, y, taun=tn, taup=tp))
+
+        strats = np.zeros((self.its, 2))
+        fluxes = np.zeros((self.its, 2))
+        pops = np.zeros((self.its, 3))
+        t_end = 100
+        params = copy.deepcopy(self.params)
+        for i in range(0, its):
+            params['resource'] = self.base + self.step_size * i
+            init = np.array([sol[0, -1], sol[1, -1], sol[2, -1]])
+            tim, sol, flux, strat = self.semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
+            self.optimal_behavior_trajectories(t, y, taun=tn, taup=tp))
+
+            tim_OG, sol_OG, flux_OG, strat_OG = self.semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
+            self.optimal_behavior_trajectories(t, y, taun=tn, taup=tp))
+            pops[i] = np.sum((sol-sol_OG)*0.001, axis = 1) #sol[:,-1] - sol_OG[:,-1]
+            strats[i] = strat[:, -1]
+            if strats[i, 0] is 0 or strats[i, 1] is 0:
+                print(strat)
+            fluxes[i] = np.sum((flux - flux_OG) * 0.001, axis=1)
+            # print(fluxes[i], pops[i], phi0_dyn, base+step_size*i)
+        return np.hstack([strats, pops, fluxes])
+
 
     base = 14
     its = 1
@@ -178,38 +211,3 @@ class PredatorPrey:
 
     params_ext = {'cmax': cmax, 'mu0': mu0, 'mu1': mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0': phi0, 'phi1': phi1,
                   'resource': base, 'lam': lam}
-
-    def dynamic_pred_prey(phi0_dyn, step_size=step_size, its=its, params=params_ext):
-        #    solution_storer = np.zeros
-        flux_and_strat_storer = []
-        params['phi0'] = phi0_dyn
-
-        t_end = 120
-
-        init = np.array([0.8, 0.5, 0.5])
-        time_b, sol_basic, flux_bas, strat_bas = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
-        optimal_behavior_trajectories(t, y, params, taun=tn, taup=tp), params, opt_prey=False, opt_pred=False)
-        base_case = np.array([sol_basic[0, -1], sol_basic[1, -1], sol_basic[2, -1]])
-
-        tim, sol, flux, strats = semi_implicit_euler(t_end, base_case, 0.001, lambda t, y, tn, tp:
-        optimal_behavior_trajectories(t, y, params, taun=tn, taup=tp), params)
-
-        strats = np.zeros((its, 2))
-        fluxes = np.zeros((its, 2))
-        pops = np.zeros((its, 3))
-        t_end = 100
-        for i in range(0, its):
-            params['resource'] = base + step_size * i
-            init = np.array([sol[0, -1], sol[1, -1], sol[2, -1]])
-            tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
-            optimal_behavior_trajectories(t, y, params, taun=tn, taup=tp), params, opt_prey=True, opt_pred=True)
-
-            tim_OG, sol_OG, flux_OG, strat_OG = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
-            optimal_behavior_trajectories(t, y, params, taun=tn, taup=tp), params, opt_prey=False, opt_pred=False)
-            pops[i] = sol[:, -1]  # np.sum((sol-sol_OG)*0.001, axis = 1) #sol[:,-1] - sol_OG[:,-1]
-            strats[i] = strat[:, -1]
-            if strats[i, 0] is 0 or strats[i, 1] is 0:
-                print(strat)
-            fluxes[i] = np.sum((flux - flux_OG) * 0.001, axis=1)
-            # print(fluxes[i], pops[i], phi0_dyn, base+step_size*i)
-        return np.hstack([strats, pops, fluxes])
