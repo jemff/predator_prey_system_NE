@@ -243,6 +243,8 @@ if its > 0:
             params_ext['phi0'] = phi0_base+j*step_size_phi
             if i is 0:
                 x_prev = np.copy(x_ext)
+                sol_temp = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=x_prev, method='hybr')
+                x_prev = sol_temp.x
             else:
                 sol_temp = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=x_prev, method='hybr')
                 x_prev = sol_temp.x
