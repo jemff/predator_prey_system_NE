@@ -1,5 +1,6 @@
 import numpy as np
 import scipy as scp
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import sys
@@ -114,6 +115,24 @@ def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True):
     return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
 
 
+def heatmap_plotter(data, title, image_name, ext):
+    plt.figure()
+    plt.title(title)
+    #    plt.colorbar(res_nums, fraction=0.046, pad=0.04)
+    plt.xlabel("Cbar, kg/m^3")
+    plt.ylabel("phi0, kg/(m^3 * week)")
+
+    ax = plt.gca()
+    im = ax.imshow(data, cmap='Reds', extent =ext)
+
+    # create an axes on the right side of ax. The width of cax will be 5%
+    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+
+    plt.colorbar(im, cax=cax)
+
+    plt.savefig(image_name+".png")
 
 base = 40
 its = 40
@@ -244,53 +263,34 @@ if its > 0:
 #    print(prey_nums[:, 0])
     ran = [base, base+its*step_size, 100*phi0_base, 100*(phi0_base+its*step_size_phi)]
     print("Ran", ran)
-    plt.imshow(res_nums, cmap='Reds', extent =ran)
-    plt.title('Resource kg/m^3')
-    plt.colorbar()
-    plt.xlabel("Max resource in kg m/3")
-    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
-    plt.savefig("resource_conc.png")
-    plt.show()
 
-    plt.imshow(prey_nums, cmap='Reds', extent =ran)
-    plt.title('Prey kg/m^3')
-    plt.colorbar()
-    plt.xlabel("Max resource in kg m/3")
-    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
 
-    plt.savefig("prey_conc.png")
-    plt.show()
 
-    plt.imshow(pred_nums, cmap='Reds', extent =ran)
-    plt.title('Pred kg/m^3')
-    plt.colorbar()
-    plt.xlabel("Max resource in kg m/3")
-    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
-    plt.show()
 
-    plt.imshow(taun_grid, cmap='Reds', extent =ran)
-    plt.title('Prey foraging intensity')
-    plt.colorbar()
-    plt.xlabel("Max resource in kg m/3")
-    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
-    plt.savefig("pred_for.png")
-    plt.show()
 
-    plt.imshow(taup_grid, cmap='Reds', extent =ran)
-    plt.title('Predator foraging intensity')
-    plt.colorbar()
-    plt.xlabel("Max resource in kg m/3")
-    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
+    heatmap_plotter(res_nums, 'Resource kg/m^3', "resource_conc", ran)
+    heatmap_plotter(prey_nums, 'Prey kg/m^3', "prey_conc", ran)
+    heatmap_plotter(pred_nums, 'Predators kg/m^3', "pred_conc", ran)
+    heatmap_plotter(taun_grid, 'Prey foraging intensity', "prey_for", ran)
+    heatmap_plotter(taup_grid, 'Predator foraging intensity', "pred_for", ran)
+    heatmap_plotter(eigen_max, 'Predator foraging intensity', "Eigenvalues", ran)
 
-    plt.savefig("prey_for.png")
-    plt.show()
+#    plt.figure()
+#    plt.title('Resource kg/m^3')
+#    #    plt.colorbar(res_nums, fraction=0.046, pad=0.04)
+#    plt.xlabel("Cbar, kg/m^3")
+#    plt.ylabel("phi0, kg/(m^3 * week)")
+#
+#    ax = plt.gca()
+#    im = ax.imshow(res_nums, cmap='Reds', extent =ran)
 
-    plt.imshow(eigen_max, cmap='Reds', extent =ran)
-    plt.title('Eigenvalues')
-    plt.colorbar()
-    plt.xlabel("Max resource in kg m/3")
-    plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
+    # create an axes on the right side of ax. The width of cax will be 5%
+    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
+#    divider = make_axes_locatable(ax)
+#    cax = divider.append_axes("right", size="5%", pad=0.05)
 
-    plt.savefig("Eigenvalues.png")
-    plt.show()
+#    plt.colorbar(im, cax=cax)
+
+#    plt.savefig("resource_conc.png")
+#    plt.show()
 

@@ -235,12 +235,18 @@ t_end = 80
 init = np.array([10.02380589, 11.16997066,  1.26961184])
 tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=True, opt_pred=True)
+tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
+optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=False, opt_pred=False)
+
 
 plt.figure()
-plt.plot(tim, sol[0,:], label = 'Resource biomass')
-plt.plot(tim, sol[1,:], label = 'Prey biomass')
-plt.plot(tim, sol[2,:], label = 'Predator biomass')
-plt.xlabel("Days")
+#plt.plot(tim, sol[0,:], label = 'Resource biomass')
+plt.plot(tim, sol[1,:], label = 'Dynamic prey biomass')
+plt.plot(tim, sol[2,:], label = 'Dynamic predator biomass')
+plt.plot(tim, sol_2[1,:], label = 'Static prey biomass')
+plt.plot(tim, sol_2[2,:], label = 'Static predator biomass')
+
+plt.xlabel("Weeks")
 plt.ylabel("kg/m^3")
 plt.legend(loc = 'upper right')
 
@@ -249,7 +255,7 @@ plt.savefig("Indsvingning.png")
 plt.figure()
 plt.plot(tim[1:], strat[0,1:], label = "Prey foraging intensity")
 plt.plot(tim[1:], strat[1,1:], label = "Predator foraging intensity")
-plt.xlabel("Days")
+plt.xlabel("Weeks")
 plt.ylabel("Intensity")
 plt.legend(loc = 'upper right')
 plt.savefig("Indsvingning_strat.png")
