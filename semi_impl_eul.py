@@ -127,16 +127,16 @@ def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_
         flux[:, i] = fwd[3:]
     return t, solution, flux, strat
 
-base = 60
+base = 40
 its = 0
 step_size = 1
 step_size_phi = 0.05
 cbar = base
-phi0_base = 0.2
+phi0_base = 0.4
 
 cmax = 2
 mu0 = 0.2
-mu1 = 0.3
+mu1 = 0.2
 eps = 0.7
 epsn = 0.7
 cp = 2
@@ -231,21 +231,27 @@ if its > 0:
     plt.colorbar()
     plt.show()
 
-t_end = 100
-init = np.array([30.02380589, 20.16997066, 5.26961184])
+t_end = 80
+init = np.array([10.02380589, 11.16997066,  1.26961184])
 tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=True, opt_pred=True)
 
 plt.figure()
-plt.plot(tim, sol[1,:], label = 'Prey')
-plt.plot(tim, sol[2,:], label = 'Predator')
+plt.plot(tim, sol[0,:], label = 'Resource biomass')
+plt.plot(tim, sol[1,:], label = 'Prey biomass')
+plt.plot(tim, sol[2,:], label = 'Predator biomass')
 plt.xlabel("Days")
 plt.ylabel("kg/m^3")
+plt.legend(loc = 'upper right')
+
 plt.savefig("Indsvingning.png")
 
 plt.figure()
-plt.plot(tim, strat[0,:], label = "Prey strategy")
-plt.plot(tim, strat[1,:], label = "Predator strategy")
+plt.plot(tim[1:], strat[0,1:], label = "Prey foraging intensity")
+plt.plot(tim[1:], strat[1,1:], label = "Predator foraging intensity")
 plt.xlabel("Days")
 plt.ylabel("Intensity")
+plt.legend(loc = 'upper right')
 plt.savefig("Indsvingning_strat.png")
+
+print(sol[:,-1])

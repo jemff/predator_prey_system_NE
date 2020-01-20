@@ -115,8 +115,8 @@ def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True):
 
 
 
-base = 60
-its = 120
+base = 40
+its = 40
 step_size = 0.5
 step_size_phi = 0.00125
 cbar = base
@@ -124,7 +124,7 @@ phi0_base = 0.4
 
 cmax = 2
 mu0 = 0.2
-mu1 = 0.3
+mu1 = 0.2
 epsn = 0.7
 
 eps = 0.7
@@ -154,7 +154,7 @@ if manual_max is True:
 eq_stat = static_eq_calc(params_ext)
 #sol_4 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([base, base, 4/10*base]), method = 'hybr') #Apparently only three real roots.
 
-sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, base, base]), method = 'hybr')
+sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([14.32501445, 16.32699008,  7.17698779]), method = 'hybr')
 #sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([12.24914961,  0.8,  0.98489586]), method = 'hybr')
 sol_2 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1/2*(base), 1/6*base]), method = 'hybr')
 sol = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = eq_stat, method = 'hybr')
@@ -174,7 +174,7 @@ jac_3 = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ex
 jac_4 = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol_4.x, h)
 
 
-print(sol)
+print(sol.success)
 print(sol.message, sol.x, "Sol 1")
 print(sol_2.message, sol_2.x, "Sol 2")
 print(sol_3.message, sol_3.x, "Sol 3")
@@ -188,7 +188,7 @@ print(sol_4.message, sol_4.x, "SOL FOUR")
 print(sol_static.x)
 #print(jac)
 print(np.linalg.eig(jac)[0], "Jac1")
-print(np.linalg.eig(jac_2)[0], "Jac2")
+#print(np.linalg.eig(jac_2)[0], "Jac2")
 print(np.linalg.eig(jac_3)[0], "Jac3")
 print(np.linalg.eig(jac_4)[0], "Jac4")
 
@@ -222,13 +222,13 @@ if its > 0:
     #    print(np.linalg.eig(jac_temp)[0])
         for j in range(its):
             params_ext['phi0'] = phi0_base+j*step_size_phi
-            if j is 0:
+            if i is 0:
                 x_prev = np.copy(x_ext)
             else:
-                sol_temp = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=2*x_prev, method='hybr')
-                #print(sol_temp.message)
+                sol_temp = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=x_prev, method='hybr')
                 x_prev = sol_temp.x
-                #print(x_prev, i, j, params_ext['phi0'])
+ #               if sol_temp.success is False or j is 0:
+ #                   print(sol_temp.message)
 
             jac_temp = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), x_prev, h)
             #print(np.linalg.eig(jac_temp)[0], x_prev, params_ext["phi0"], params_ext["resource"])
@@ -241,7 +241,8 @@ if its > 0:
 #            if eigen_max[i, j] > 0:
 #                print("Oh no!")
 
-    ran = [base, base+its*step_size, 200*phi0_base, 200*(phi0_base+its*step_size_phi)]
+#    print(prey_nums[:, 0])
+    ran = [base, base+its*step_size, 100*phi0_base, 100*(phi0_base+its*step_size_phi)]
     print("Ran", ran)
     plt.imshow(res_nums, cmap='Reds', extent =ran)
     plt.title('Resource kg/m^3')
@@ -272,7 +273,7 @@ if its > 0:
     plt.colorbar()
     plt.xlabel("Max resource in kg m/3")
     plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
-    plt.savefig("pred_conc.png")
+    plt.savefig("pred_for.png")
     plt.show()
 
     plt.imshow(taup_grid, cmap='Reds', extent =ran)
@@ -281,7 +282,7 @@ if its > 0:
     plt.xlabel("Max resource in kg m/3")
     plt.ylabel("Predator cost of foraging, kg/(m^3 *day)")
 
-    plt.savefig("pred_conc.png")
+    plt.savefig("prey_for.png")
     plt.show()
 
     plt.imshow(eigen_max, cmap='Reds', extent =ran)
@@ -292,3 +293,4 @@ if its > 0:
 
     plt.savefig("Eigenvalues.png")
     plt.show()
+
