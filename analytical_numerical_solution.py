@@ -132,7 +132,7 @@ def heatmap_plotter(data, title, image_name, ext):
 
     plt.colorbar(im, cax=cax)
 
-    plt.savefig(image_name+".png")
+    plt.savefig(image_name+".png", bbox_inches='tight')
 
 base = 40
 its = 40
