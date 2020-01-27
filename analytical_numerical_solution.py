@@ -28,7 +28,7 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True):
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
     if opt_prey is True and opt_pred is True:
-        taun = min(max(opt_taun_find(y, params), 0), 1)
+        taun = min(max(opt_taun_find(y, params, 0.5), 0), 1)
         taup = min(max(opt_taup_find(y, taun, params), 0), 1)
 
     elif opt_prey is True and opt_pred is False:
@@ -76,7 +76,7 @@ def opt_taup_find(y, taun, params):
         return res
 
 
-def opt_taun_find(y, params):
+def opt_taun_find(y, params, dummy):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
@@ -102,6 +102,20 @@ def opt_taun_find(y, params):
         max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[0.001, maxi_mill], method='brentq').root
 
     return max_cands
+
+
+def opt_taun_find_unstable(y, params, taun_old):
+    C, N, P = y[0], y[1], y[2]
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+
+
+    taun_fitness_II = lambda s_prey: \
+        epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * opt_taup_find(y, s_prey, params) * s_prey * P / (opt_taup_find(y, s_prey, params) * s_prey * N + cp) - mu0 * s_prey - mu1
+    val = optm.fminbound(lambda x: -taun_fitness_II(x), full_output=True, disp=False, x1 = 0, x2 = 1)[0]
+#    print(taun_fitness_II(0.465827056568672), taun_fitness_II(val), N, P)
+#    print(optm.fminbound(lambda x: -taun_fitness_II(x), full_output=True, disp=True, x1 = 0, x2 = 1))
+#    print(val, "val", opt_taup_find(y, val, params))
+    return val
 
 def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True):
     C = y[0]
@@ -137,7 +151,7 @@ def heatmap_plotter(data, title, image_name, ext):
 base = 40
 its = 40
 step_size = 0.5
-step_size_phi = 0.00125
+step_size_phi = 0.0025 #0.00125
 cbar = base
 phi0_base = 0.4
 
@@ -268,14 +282,15 @@ if its > 0:
 
 
 
-
-
+    temporary_thingy = np.zeros((its, its))
+    temporary_thingy[0,:] = 1
+    heatmap_plotter(temporary_thingy, "test", "test", ran)
     heatmap_plotter(res_nums, 'Resource kg/m^3', "resource_conc", ran)
     heatmap_plotter(prey_nums, 'Prey kg/m^3', "prey_conc", ran)
     heatmap_plotter(pred_nums, 'Predators kg/m^3', "pred_conc", ran)
     heatmap_plotter(taun_grid, 'Prey foraging intensity', "prey_for", ran)
     heatmap_plotter(taup_grid, 'Predator foraging intensity', "pred_for", ran)
-    heatmap_plotter(eigen_max, 'Predator foraging intensity', "Eigenvalues", ran)
+    heatmap_plotter(eigen_max, 'Eigenvalues', "Eigenvalues", ran)
 
 #    plt.figure()
 #    plt.title('Resource kg/m^3')
