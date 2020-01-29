@@ -118,8 +118,9 @@ def taun_fitness_II(s_prey, y, params):
 
 def taup_find(s_prey, y, params):
     C, N, P = y[0], y[1], y[2]
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+    print(cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey)), "Is it fucking up here")
     return cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
 
 
@@ -128,8 +129,8 @@ def taun_fitness_II_d(s_prey, y, params):
 
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
-    taup = -taup_find(s_prey, y, params)
-    print(s_prey, y, taup)
+    taup = taup_find(s_prey, y, params)
+
     p_term = (N*s_prey*taup+cp)
 
     taup_prime = cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
@@ -140,9 +141,14 @@ def taun_fitness_II_d(s_prey, y, params):
 def opt_taun_find(y, params, taun_old):
     C, N, P = y[0], y[1], y[2]
 
+    comparison_numbs = np.zeros(100)
     linsp = np.linspace(0.001, 1, 100)
+#    for i in range(100):
+#        comparison_numbs[i] = taun_fitness_II_d(linsp[i], )
+
     comparison_numbs = taun_fitness_II_d(linsp, y, params)
     if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
+
         max_cands = linsp[np.argmax(taun_fitness_II(linsp, y, params))]
     #        t0 = taun_fitness_II(0.001)
     #        t1 = taun_fitness_II(1)
