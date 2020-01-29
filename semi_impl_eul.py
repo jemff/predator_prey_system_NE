@@ -68,44 +68,62 @@ def opt_taup_find(y, taun, params):
         res1 = cp * (np.sqrt(eps / (phi0 * taun * N)) - 1 / (N * taun)) #np.log(np.exp(cp * (np.sqrt(eps / (phi0 * taun * N)) - 1 / (N * taun)))+1)
         res2 = -res1
 
-#        print((cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1), 'res1')
-#        print((cp * eps * res2 * taun * N / (N * res2 * taun + cp) - phi0 * res2 - phi1), 'res2')
         if np.sum(np.array(res1).shape)>2:
-            #res = np.zeros(res1.shape[0])
+            res1[res1 < 0.5] = 0
+            res2[res2 < 0.5] = 0
+            res1[res1 > 1] = 1
+            res2[res2 > 1] = 1
 
-            r1 = np.array([cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1])
-            r2 = np.array([cp * eps * res2 * taun * N / (N * res2 * taun + cp) - phi0 * res2 - phi1])
+            r1 = cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1
 
+            r2 = cp * eps * res2 * taun * N / (N * res2 * taun + cp) - phi0 * res2 - phi1
+
+            #print(r1.shape, r2.shape)
             res = res2
-            res[np.where(r1 > r2)[0]] = res1[np.where(r1 > r2)[0]]
-
-            res[res < 0] = 0
-            res[res > 1] = 1
+#            print(res1, res2)
+            #print(res1, "res1", res2, "res2")
+            #print(res1[np.where(r1 < r2)], "res2 bigger")
+            res[np.where(r1 > r2)] = res1[np.where(r1 > r2)]
+#            res[res < 0] = 0
+#            res[res > 1] = 1
 
         else:
-            res1 = max(res1, res2)
+            #res1 = max(res1, res2)
 #            res2 = res1
 #            print(res1, res2)
 #            print(res1)
-            res1 = max(min(res1, 1), 0.0)
+            res1 = max(min(res1, 1), 0)
+            res2 = max(min(res2, 1), 0)
+
+            r1 = cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1
+
+            r2 = cp * eps * res2 * taun * N / (N * res2 * taun + cp) - phi0 * res2 - phi1
+
+            if r1 > r2:
+                res = res1
+            else:
+                res = res2
+#            print(res)
+#            print(r1, res1, r2, res2, res)
+#            res = max(min(res, 1), 0.0)
 #            res2 = max(min(res2, 1), 0.0)
 
-            r1 = cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1 #0.5 has been added as a numerical band-aid due to instability of the method
+#            r1 = cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1 #0.5 has been added as a numerical band-aid due to instability of the method
 #            r2 = cp * eps * res2 * taun * N / (N * res2 * taun + cp) - phi0 * res2 - phi1
-            r3 = cp * eps * 1 * taun * N / (N * 1 * taun + cp) - phi0 * 1 - phi1
-            r4 =  cp * eps * 0.0 * taun * N / (N * 0.0 * taun + cp) - phi0 * 0.0 - phi1 #-phi1
-            pos_max = np.array([r1, r3, r4])
+#            r3 = cp * eps * 1 * taun * N / (N * 1 * taun + cp) - phi0 * 1 - phi1
+#            r4 =  cp * eps * 0.0 * taun * N / (N * 0.0 * taun + cp) - phi0 * 0.0 - phi1 #-phi1
+#            pos_max = np.array([r1, r3, r4])
 
 
-            max_p = np.max(pos_max)
-            if r1 == max_p:
-                res = res1
+#            max_p = np.max(pos_max)
+#            if r1 == max_p:
+#                res = res1
 #            elif r2 == max_p:
 #                res = res2
-            elif r3 == max_p:
-                res = 1
-            else:
-                res = 0.5 #As above, numerical band-aid
+#            elif r3 == max_p:
+#                res = 1
+#            else:
+#                res = 0.5 #As above, numerical band-aid
 
 
 
@@ -171,42 +189,60 @@ def opt_taun_find_grad(y, params, dummy):
 
     return max_cands
 
-def opt_taun_find_unstable(y, params, taun_old):
+def opt_taun_find(y, params, taun_old):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+    fishy_fish = np.linspace(0.001, 1, 100000)
+#    fishy_fish_2 = np.linspace(0.3, 1, 1000)
 
 
     taun_fitness_II = lambda s_prey: \
         epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * opt_taup_find(y, s_prey, params) * s_prey * P / (opt_taup_find(y, s_prey, params) * s_prey * N + cp) - mu0 * s_prey - mu1
-    val = optm.fminbound(lambda x: -taun_fitness_II(x), full_output=True, disp=False, x1 = 0.0, x2 = 1)[0]
+#    val = optm.fminbound(lambda x: -taun_fitness_II(x), full_output=True, disp=False, x1 = 0.0, x2 = 1.0001)[0]
 #    print(taun_fitness_II(0.238), taun_fitness_II(val), val, C, N, P)
 #    print(optm.fminbound(lambda x: -taun_fitness_II(x), full_output=True, disp=True, x1 = 0, x2 = 1))
-    print(val, "val", opt_taup_find(y, val, params), C, N, P)
+#    max1 = np.max(taun_fitness_II(fishy_fish))
 
-    return val
+ #   max2 = np.max(taun_fitness_II(fishy_fish_2))
+
+    dumb_val = fishy_fish[np.argmax(taun_fitness_II(fishy_fish))]
+
+#    if np.abs(max1 - max2) < 1 or max2 > max1:
+ #       dumb_val = fishy_fish_2[np.argmax(taun_fitness_II(fishy_fish_2))]
+##        print("fishy2")
+#    else:
+#        dumb_val = fishy_fish[np.argmax(taun_fitness_II(fishy_fish))]
+#        print(max1, max2, np.abs(max1 - max2))
+#        print("fishy1")
+    #    print(val, "val", taun_fitness_II(0.9811888017062286), taun_fitness_II(val), np.max(taun_fitness_II(fishy_fish)), fishy_fish[np.argmax(taun_fitness_II(fishy_fish))], "CNP", C , N, P)
+
+#    print(dumb_val, max1, max2)
+    return dumb_val
 
 
 
-def opt_taun_find_badgrad(y, params, dummy):
+def opt_taun_find_old(y, params, dummy):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
 
-    taun_fitness_II = lambda s_prey: \
-        epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * opt_taup_find(y, s_prey, params) * s_prey * P / (
-                    opt_taup_find(y, s_prey, params) * s_prey * N + cp) - mu0 * s_prey - mu1
-    taun_fitness_II_d_old = lambda s_prey: epsn*cmax**2*C/(s_prey*C+cmax)**2 \
-                                       - 3/2*(N**2*cp*(eps/(phi0*N))**(1/2)*s_prey**(5/2))**(-1) - mu0
 
-    taup = lambda s_prey: opt_taup_find(y, s_prey, params)
+    taun_fitness_II = lambda s_prey: epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * taup(s_prey) * s_prey * P / (
+                    taup(s_prey) * s_prey * N + cp) - mu0 * s_prey - mu1
+    taun_fitness_II_d_old = lambda s_prey: epsn*cmax**2*C/(s_prey*C+cmax)**2 \
+                                       -  P*cp*3/2*(N**2*cp*(eps/(phi0*N))**(1/2)*s_prey**(5/2))**(-1) - mu0
+
     p_term = lambda s_prey : (N*s_prey*taup(s_prey)+cp)
 
 
+    taup = lambda s_prey: cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey)) -cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
 
     taup_prime = lambda s_prey: cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
 
     taun_fitness_II_d = lambda s_prey: epsn*(cmax**2)*C/((s_prey*C+cmax)**2) - mu0 \
                                                  - (cp**2)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
+
+
 
     comparison_numbs = np.zeros(100)
     linsp = np.linspace(0.001, 1, 100)
@@ -214,12 +250,14 @@ def opt_taun_find_badgrad(y, params, dummy):
         comparison_numbs[i] = taun_fitness_II_d(linsp[i])
 
     if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
-        t0 = taun_fitness_II(0)
-        t1 = taun_fitness_II(1)
-        if t0 > t1:
-            max_cands = 0
-        else:
-            max_cands = 1
+
+        max_cands = linsp[np.argmax(taun_fitness_II(linsp))]
+#        t0 = taun_fitness_II(0.001)
+#        t1 = taun_fitness_II(1)
+#        if t0 > t1:
+#            max_cands = 0.001
+#        else:
+#            max_cands = 1
 
     else:
         maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
@@ -231,7 +269,7 @@ def opt_taun_find_badgrad(y, params, dummy):
     return max_cands
 
 
-def opt_taun_find(y, params, dummy):
+def opt_taun_find_oldschool(y, params, dummy):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
@@ -293,7 +331,23 @@ def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_
         flux[:, i] = fwd[3:]
     return t, solution, flux, strat
 
-base = 40
+def binary_search_max(f, n, err = 10**(-8)):
+    line = np.linsp(0,1,n)
+    error = 1
+    max_f = f(0)
+    max_old = 0
+    while error > err:
+        res = f(line)
+        max_loc = np.argmax(res)
+        line = line / 2
+        if max_loc > n/2:
+            line += 1/2
+
+        error = np.max(np.abs(f(line))-max_old)
+
+
+
+base = 20
 its = 0
 step_size = 1
 step_size_phi = 0.05
@@ -322,15 +376,15 @@ def dynamic_pred_prey(phi0_dyn, step_size=step_size, its=its, params=params_ext)
     flux_and_strat_storer = []
     params['phi0'] = phi0_dyn
 
-    t_end = 120
+    t_end = 10
 
     init = np.array([0.8, 0.5, 0.5])
-    time_b, sol_basic, flux_bas, strat_bas = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
+    time_b, sol_basic, flux_bas, strat_bas = semi_implicit_euler(t_end, init, 0.00001, lambda t, y, tn, tp:
             optimal_behavior_trajectories(t, y, params, taun=tn, taup=tp), params, opt_prey = False, opt_pred = False)
     base_case = np.array([sol_basic[0, -1], sol_basic[1, -1], sol_basic[2, -1]])
 
 
-    tim, sol, flux, strats = semi_implicit_euler(t_end, base_case, 0.0001, lambda t, y, tn, tp:
+    tim, sol, flux, strats = semi_implicit_euler(t_end, base_case, 0.00001, lambda t, y, tn, tp:
     optimal_behavior_trajectories(t, y, params, taun=tn, taup=tp), params)
 
     strats = np.zeros((its, 2))
@@ -346,7 +400,6 @@ def dynamic_pred_prey(phi0_dyn, step_size=step_size, its=its, params=params_ext)
         tim_OG, sol_OG, flux_OG, strat_OG = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
             optimal_behavior_trajectories(t, y, params, taun=tn, taup=tp), params, opt_prey = False, opt_pred = False)
         pops[i] = sol[:,-1] #np.sum((sol-sol_OG)*0.001, axis = 1) #sol[:,-1] - sol_OG[:,-1]
-        plt.plot(tim, sol[0, :])
         strats[i] = strat[:, -1]
         if strats[i, 0] is 0 or strats[i, 1] is 0:
             print(strat)
@@ -397,15 +450,20 @@ if its > 0:
     plt.colorbar()
     plt.show()
 
-t_end = 250
-init = np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#np.array([10.02380589, 11.16997066,  1.26961184])
+t_end = 30
+
+
+init = np.array([8.85361793, 4.85670493, 3.48515033]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
 tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=True, opt_pred=True)
 tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=False, opt_pred=False)
 
+print(optimal_behavior_trajectories(0, sol[:,-10], params_ext))
+
 #params_ext["resource"] = 40
-C, N, P = 15.753812957581866, 15.490194692112937, 10.626801718856221
+C, N, P =  np.array([8.85361793, 4.85670493, 3.48515033])
+print(C, N, P, "CNP1")
 y = np.array([C, N, P])
 numbs = np.linspace(0,1,500)
 taun_fitness_II = lambda s_prey: \
@@ -420,7 +478,24 @@ font = {'family' : 'normal',
 plt.rc('font', **font)
 
 
-#plt.plot(numbs, (taun_fitness_II(numbs)))
+plt.scatter(numbs, (taun_fitness_II(numbs)))
+plt.show()
+
+C, N, P = sol[:,-2]
+print(C, N, P, "CNP2")
+y = np.array([C, N, P])
+numbs = np.linspace(0,1,500)
+taun_fitness_II = lambda s_prey: \
+    epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * opt_taup_find(y, s_prey, params_ext) * s_prey * P / (
+                opt_taup_find(y, s_prey, params_ext) * s_prey * N + cp) - mu0 * s_prey - mu1
+
+plt.scatter(numbs, (taun_fitness_II(numbs)))
+plt.show()
+
+plt.scatter(numbs, opt_taup_find(y, numbs, params_ext))
+
+plt.show()
+
 plt.figure()
 #plt.plot(tim, sol[0,:], label = 'Resource biomass')
 plt.plot(tim, sol[1,:], label = 'Dynamic prey biomass', color = 'Green')
@@ -443,10 +518,11 @@ plt.figure()
 #strat[1, locs] = 0.828 #due to numerical fluctuations... The method is of too low an order and the new way to find max of taun is not stable.
 
 
-plt.plot(tim[1:], strat[0,1:],  label = "Prey foraging intensity")
-plt.plot(tim[1:], strat[1,1:],  label = "Predator foraging intensity")
+plt.scatter(tim[1:], strat[0,1:],  label = "Prey foraging intensity",alpha=0.5)
+plt.scatter(tim[1:], strat[1,1:],  label = "Predator foraging intensity",alpha=0.5)
 plt.xlabel("Months")
 plt.ylabel("Intensity")
 plt.legend(loc = 'center left')
 plt.savefig("Indsvingning_strat.png")
 
+print(strat[0,1:])

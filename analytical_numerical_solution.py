@@ -38,8 +38,8 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True):
 
     elif opt_pred is True and opt_prey is False:
         taup = min(max(taup(taun, N),0),1)
-
-    return np.array([taun]), np.array([taup])
+    print(taun, taup)
+    return taun, taup
 
 def static_eq_calc(params):
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
@@ -56,6 +56,37 @@ def static_eq_calc(params):
     return np.array([C_star, N_star, P_star])
 
 def opt_taup_find(y, taun, params):
+    N = y[1]
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+    if taun is 0:
+        return 0
+    else:
+        res1 = cp * (np.sqrt(eps / (phi0 * taun * N)) - 1 / (N * taun))
+        res2 = -res1
+
+        res1 = max(min(res1, 1),0)
+        res2 = max(min(res2, 1),0)
+
+        r1 = cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1
+        r2 = cp * eps * res2 * taun * N / (N * res2 * taun + cp) - phi0 * res2 - phi1
+
+        print(taun, r1, r2)
+#        print(r1, "r1", r2, "r2", res1, res2,  cp * eps * 1 * taun * N / (N * 1 * taun + cp) - phi0 * 1 - phi1, -phi1)
+        res = res1
+#        res[r2>r1] = res[r2 > r1]
+        if r1 > r2:
+            res = res1
+        else:
+            res = res2
+#            print("Ding ding")
+#        res = res2
+#        print(res, taun)
+        return res
+
+
+
+
+def opt_taup_find_old(y, taun, params):
     C = y[0]
     N = y[1]
     P = y[2]
@@ -75,8 +106,60 @@ def opt_taup_find(y, taun, params):
                 res = 0
         return res
 
+def taun_fitness_II(s_prey, y, params):
+    C, N, P = y[0], y[1], y[2]
 
-def opt_taun_find(y, params, dummy):
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+
+    taup = taup_find(s_prey, y, params)
+
+    return epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * taup * s_prey * P / (
+                    taup * s_prey * N + cp) - mu0 * s_prey - mu1
+
+def taup_find(s_prey, y, params):
+    C, N, P = y[0], y[1], y[2]
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+
+    return cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
+
+
+def taun_fitness_II_d(s_prey, y, params):
+    C, N, P = y[0], y[1], y[2]
+
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+
+    taup = -taup_find(s_prey, y, params)
+    print(s_prey, y, taup)
+    p_term = (N*s_prey*taup+cp)
+
+    taup_prime = cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
+
+    return epsn*(cmax**2)*C/((s_prey*C+cmax)**2) - mu0 \
+           - (cp**2)*P*((s_prey*taup_prime+taup)/(p_term**2))
+
+def opt_taun_find(y, params, taun_old):
+    C, N, P = y[0], y[1], y[2]
+
+    linsp = np.linspace(0.001, 1, 100)
+    comparison_numbs = taun_fitness_II_d(linsp, y, params)
+    if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
+        max_cands = linsp[np.argmax(taun_fitness_II(linsp, y, params))]
+    #        t0 = taun_fitness_II(0.001)
+    #        t1 = taun_fitness_II(1)
+    #        if t0 > t1:
+    #            max_cands = 0.001
+    #        else:
+    #            max_cands = 1
+
+    else:
+        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
+        mini_mill = linsp[np.where(comparison_numbs < 0)[0][-1]]
+        max_cands = optm.root_scalar(lambda t: taun_fitness_II_d(t, y, params), bracket=[mini_mill, maxi_mill], method='brentq').root
+
+    return max_cands
+
+
+def opt_taun_find_old(y, params, dummy):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
@@ -126,6 +209,9 @@ def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True):
     Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+cmax)
     Ndot = N*(epsn*cmax*taun*C/(taun*C+cmax) - taup * taun*P*cp*1/(taup*taun*N + cp) - mu0*taun - mu1)
     Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + cp) - phi0*taup - phi1)
+
+#    print(Cdot, Ndot, Pdot,epsn*cmax*taun*C/(taun*C+cmax) - taup * taun*P*cp*1/(taup*taun*N + cp) - mu0*taun - mu1)
+
     return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
 
 
@@ -148,7 +234,7 @@ def heatmap_plotter(data, title, image_name, ext):
 
     plt.savefig(image_name+".png", bbox_inches='tight')
 
-base = 40
+base = 20
 its = 40
 step_size = 0.5
 step_size_phi = 0.0025 #0.00125
@@ -172,6 +258,8 @@ opt_pred = True
 
 params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0':phi0, 'phi1': phi1,
           'resource': base, 'lam':lam}
+
+
 manual_max = False
 if manual_max is True:
     for i in range(int(base*10)):
@@ -187,7 +275,9 @@ if manual_max is True:
 eq_stat = static_eq_calc(params_ext)
 #sol_4 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([base, base, 4/10*base]), method = 'hybr') #Apparently only three real roots.
 
-sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([14.32501445, 16.32699008,  7.17698779]), method = 'hybr')
+print(optimal_behavior_trajectories(np.array([6.835213942880785, 9.616519943168255, 3.731972978096975]), params_ext))
+
+sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([6.835213942880785, 9.616519943168255, 3.731972978096975]), method = 'hybr')
 #sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([12.24914961,  0.8,  0.98489586]), method = 'hybr')
 sol_2 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1/2*(base), 1/6*base]), method = 'hybr')
 sol = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = eq_stat, method = 'hybr')
@@ -223,7 +313,7 @@ print(sol_static.x)
 print(np.linalg.eig(jac)[0], "Jac1")
 #print(np.linalg.eig(jac_2)[0], "Jac2")
 print(np.linalg.eig(jac_3)[0], "Jac3")
-print(np.linalg.eig(jac_4)[0], "Jac4")
+#print(np.linalg.eig(jac_4)[0], "Jac4")
 
 
 print(np.linalg.eig(jac_stat)[0])
@@ -268,7 +358,7 @@ if its > 0:
             jac_temp = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), x_prev, h)
             #print(np.linalg.eig(jac_temp)[0], x_prev, params_ext["phi0"], params_ext["resource"])
 #            print(np.real(np.linalg.eig(jac_temp)[0].max()))
-            eigen_max[i, j] = np.real(np.linalg.eig(jac_temp)[0].max())
+#            eigen_max[i, j] = np.real(np.linalg.eig(jac_temp)[0].max())
             res_nums[i, j] = x_prev[0]
             prey_nums[i, j] = x_prev[1]
             pred_nums[i, j] = x_prev[2]
