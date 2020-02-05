@@ -245,8 +245,8 @@ def heatmap_plotter(data, title, image_name, ext):
     plt.figure()
     plt.title(title)
     #    plt.colorbar(res_nums, fraction=0.046, pad=0.04)
-    plt.xlabel("Cbar, kg/m^3")
-    plt.ylabel("phi0, kg/(m^3 * week)")
+    plt.xlabel("Cbar, g/m^3")
+    plt.ylabel("phi0, 10^(-2) g/(m^3 * week)")
 
     ax = plt.gca()
     im = ax.imshow(data, cmap='Reds', extent =ext)
@@ -401,9 +401,9 @@ if its > 0:
     temporary_thingy = np.zeros((its, its))
     temporary_thingy[0,:] = 1
     heatmap_plotter(temporary_thingy, "test", "test", ran)
-    heatmap_plotter(res_nums, 'Resource kg/m^3', "resource_conc", ran)
-    heatmap_plotter(prey_nums, 'Prey kg/m^3', "prey_conc", ran)
-    heatmap_plotter(pred_nums, 'Predators kg/m^3', "pred_conc", ran)
+    heatmap_plotter(res_nums, 'Resource g/m^3', "resource_conc", ran)
+    heatmap_plotter(prey_nums, 'Prey g/m^3', "prey_conc", ran)
+    heatmap_plotter(pred_nums, 'Predators g/m^3', "pred_conc", ran)
     heatmap_plotter(taun_grid, 'Prey foraging intensity', "prey_for", ran)
     heatmap_plotter(taup_grid, 'Predator foraging intensity', "pred_for", ran)
     heatmap_plotter(eigen_max, 'Eigenvalues', "Eigenvalues", ran)

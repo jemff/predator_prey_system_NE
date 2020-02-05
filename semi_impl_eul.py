@@ -7,6 +7,29 @@ from io import StringIO
 from scipy import optimize as optm
 import scipy.integrate
 from multiprocessing import Pool
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+
+
+
+def heatmap_plotter(data, title, image_name, ext):
+    plt.figure()
+    plt.title(title)
+    #    plt.colorbar(res_nums, fraction=0.046, pad=0.04)
+    plt.xlabel("Cbar, g/m^3")
+    plt.ylabel("phi0, g/(m^3 * week)")
+
+    ax = plt.gca()
+    im = ax.imshow(data, cmap='Reds', extent =ext)
+
+    # create an axes on the right side of ax. The width of cax will be 5%
+    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+
+    plt.colorbar(im, cax=cax)
+
+    plt.savefig(image_name+".png", bbox_inches='tight')
 
 
 def num_derr(f, x, h):
@@ -189,10 +212,10 @@ def opt_taun_find_grad(y, params, dummy):
 
     return max_cands
 
-def opt_taun_find_dumb(y, params, taun_old):
+def opt_taun_find(y, params, taun_old):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-    fishy_fish = np.linspace(0.2, 1, 300)
+    fishy_fish = np.linspace(0.001, 1, 300)
 #    fishy_fish_2 = np.linspace(0.3, 1, 1000)
 
 
@@ -205,7 +228,7 @@ def opt_taun_find_dumb(y, params, taun_old):
 
 #    max2 = np.max(taun_fitness_II(fishy_fish_2))
 
-    dumb_val = fishy_fish[np.argmax(taun_fitness_II(fishy_fish))]*0.9
+    dumb_val = fishy_fish[np.argmax(taun_fitness_II(fishy_fish))]
 
 #    if np.abs(max1 - max2) < 1 or max2 > max1:
  #       dumb_val = fishy_fish_2[np.argmax(taun_fitness_II(fishy_fish_2))]
@@ -220,7 +243,7 @@ def opt_taun_find_dumb(y, params, taun_old):
     return dumb_val
 
 
-def opt_taun_find(y, params, dummy):
+def opt_taun_find_working(y, params, dummy):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
@@ -389,10 +412,10 @@ def binary_search_max(f, n, err = 10**(-8)):
 
 
 
-base = 20
-its = 40
-step_size = 0.5
-step_size_phi = 0.0025 #0.00125
+base = 40
+its = 0 #40
+step_size = 0.5*2.5
+step_size_phi = 0.0025*2.5 #0.00125
 cbar = base
 phi0_base = 0.4
 
@@ -450,6 +473,7 @@ def dynamic_pred_prey(phi0_dyn, step_size=step_size, its=its, params=params_ext)
 #            print(strat)
         fluxes[i] = np.sum((flux-flux_OG)*0.001, axis = 1)
         #print(fluxes[i], pops[i], phi0_dyn, base+step_size*i)
+        print(i)
     return np.hstack([strats, pops, fluxes])
 
 
@@ -465,6 +489,15 @@ if its > 0:
     #print(st)
 
     results = np.array(results)
+
+    ran = [base, base+its*step_size, 100*phi0_base, 100*(phi0_base+its*step_size_phi)]
+
+    heatmap_plotter(results[:, :, 3], 'Prey g/m^3', "prey_conc", ran)
+    heatmap_plotter(results[:, :, 4], 'Predators g/m^3', "pred_conc", ran)
+    heatmap_plotter(results[:, :, 0], 'Prey foraging intensity', "prey_for", ran)
+    heatmap_plotter(results[:, :, 1], 'Predator foraging intensity', "pred_for", ran)
+
+
     plt.imshow(results[:, :, 0], cmap='viridis')
     plt.title('Prey strategy')
     plt.colorbar()
