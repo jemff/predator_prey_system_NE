@@ -212,7 +212,7 @@ def opt_taun_find_grad(y, params, dummy):
 
     return max_cands
 
-def opt_taun_find(y, params, taun_old):
+def opt_taun_find_dumb(y, params, taun_old):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
     fishy_fish = np.linspace(0.001, 1, 300)
@@ -243,7 +243,7 @@ def opt_taun_find(y, params, taun_old):
     return dumb_val
 
 
-def opt_taun_find_working(y, params, dummy):
+def opt_taun_find(y, params, dummy):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
@@ -413,7 +413,7 @@ def binary_search_max(f, n, err = 10**(-8)):
 
 
 base = 20
-its = 0 #40
+its = 40
 step_size = 0.5*2.5
 step_size_phi = 0.0025*2.5 #0.00125
 cbar = base
@@ -528,7 +528,7 @@ if its > 0:
     plt.colorbar()
     plt.show()
 
-t_end = 20
+t_end = 40
 
 
 init = np.array([8.85361793, 6.85670493, 6.48515033]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
@@ -592,10 +592,10 @@ plt.savefig("Indsvingning.png")
 plt.figure()
 
 
-locs = np.where(strat[0, 1:] < 0.15)[0]
-locs = np.where(strat[0, 1:] < 0.3)[0]
-strat[0, locs] = 0.7902903906643381
-strat[1, locs] = 0.6747319288363259 #due to numerical fluctuations... The method is of too low an order and the new way to find max of taun is not stable.
+#locs = np.where(strat[0, 1:] < 0.15)[0]
+#locs = np.where(strat[0, 1:] < 0.3)[0]
+#strat[0, locs] = 0.7902903906643381
+#strat[1, locs] = 0.6747319288363259 #due to numerical fluctuations... The method is of too low an order and the new way to find max of taun is not stable.
 
 
 plt.plot(tim[1:], strat[0,1:], 'x', label = "Prey foraging intensity",alpha=0.5)
