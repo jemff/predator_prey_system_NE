@@ -130,9 +130,9 @@ def optimal_behavior_trajectories(t, y, params, seasons = False, taun_scared=1, 
         Cdot = lam*(cbar - C) - cmax*(N_scared*taun_scared*C/(taun_scared*C+cmax) + N_bold*taun_bold*C/(taun_bold*C+cmax))
     #flux_c_to_n = N*taun*C/(taun*C+cmax)
     #flux_n_to_p = N*taup * taun*P*cp*1/(taup*taun*N + cp)  # Now these values are calculated twice..
-    N_scareddot = N_scared*(epsn*cmax*taun_scared*C/(taun_scared*C+cmax) - mu0*taun_scared - mu1 - rat_s*cp*taup*taun_scared*N_scared/(rat_s*N_scared*taup*taun_scared + cp)) #Well, still weird. Maybe remove the option to eat the scared guys after all?? All very weird. #, removed them from the pool now. I guess the idea was they didn't get eaten at all.
-    N_bolddot = N_bold*(epsn*cmax*taun_bold*C/(taun_bold*C+cmax) - rat_b*taup * taun_bold*P*cp*1/(rat_b*taup*taun_bold*N_bold + cp) - mu0*taun_bold - mu1)
-    Pdot = P*(rat_b*cp*eps*taup*taun_bold*N_bold/(rat_b*N_bold*taup*taun_bold + cp) + rat_s*cp*eps*taup*taun_scared*N_scared/(rat_s*N_scared*taup*taun_scared + cp) - phi0*taup - phi1) # - The scared guys should also be eaten. Nothing else to do. #
+    N_scareddot = N_scared*(epsn*cmax*taun_scared*C/(taun_scared*C+cmax) - mu0*taun_scared - mu1 - taun_scared/(N_scared*taup*taun_scared+N_bold*taup*taun_bold + cp)) #Well, still weird. Maybe remove the option to eat the scared guys after all?? All very weird. #, removed them from the pool now. I guess the idea was they didn't get eaten at all.
+    N_bolddot = N_bold*(epsn*cmax*taun_bold*C/(taun_bold*C+cmax) - taun_bold*N_bold/(N_scared*taup*taun_scared+N_bold*taup*taun_bold + cp) - mu0*taun_bold - mu1)
+    Pdot = P*cp*eps*taup*(taun_bold*N_bold/(N_scared*taup*taun_scared+N_bold*taup*taun_bold + cp) + N_scared*taun_scared/(N_scared*taup*taun_scared+N_bold*taup*taun_bold + cp) - phi0*taup - phi1) # - The scared guys should also be eaten. Nothing else to do. #
     return np.array([Cdot, N_scareddot, N_bolddot, Pdot])
 
 
