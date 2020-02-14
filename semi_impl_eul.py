@@ -213,6 +213,34 @@ def opt_taun_find(y, params, dummy):
 
     taun_fitness_II_d = lambda s_prey: epsn*(cmax**2)*C/((s_prey*C+cmax)**2) - mu0 \
                                                  - (cp**2)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
+    linsp = np.linspace(0.0001 , 1, 100)
+    comparison_numbs = taun_fitness_II_d(linsp)
+
+
+
+    maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
+    mini_mill = linsp[np.where(comparison_numbs < 0)[0][-1]]
+    max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
+    #max_cands_two[2] = max_cands
+
+    return max_cands #max_cands_two[np.argmax(taun_fitness_II(max_cands_two))]
+
+
+def opt_taun_find_for_linear(y, params, dummy):
+    C, N, P = y[0], y[1], y[2]
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+
+    taun_fitness_II = lambda s_prey: epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * taup(s_prey) * s_prey * P / (
+                    taup(s_prey) * s_prey * N + cp) - mu0 * s_prey - mu1
+    p_term = lambda s_prey : (N*s_prey*taup(s_prey)+cp)
+
+
+    taup = lambda s_prey: opt_taup_find(y, s_prey, params) #cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey)) -cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
+
+    taup_prime = lambda s_prey: (opt_taup_find(y, s_prey+0.0001, params)-opt_taup_find(y, s_prey-0.0001, params))/(2*0.0001) #cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
+
+    taun_fitness_II_d = lambda s_prey: epsn*(cmax**2)*C/((s_prey*C+cmax)**2) - mu0 \
+                                                 - (cp**2)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
 
     com_num = np.linspace(0.0001, 1, 400)
     max_num = opt_taup_find(y, com_num, params)
@@ -367,7 +395,7 @@ def binary_search_max(f, n, err = 10**(-8)):
 
 
 
-base = 10
+base = 40
 its = 0
 step_size = 0.5*2.5
 step_size_phi = 0.0025*2.5 #0.00125
@@ -492,7 +520,7 @@ optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, o
 tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=False, opt_pred=False)
 
-print(optimal_behavior_trajectories(0, sol[:,-10], params_ext))
+#print(optimal_behavior_trajectories(0, sol[:,-10], params_ext))
 
 #params_ext["resource"] = 40
 C, N, P =  C, N, P = sol[:,-1]
