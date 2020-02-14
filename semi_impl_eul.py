@@ -78,7 +78,18 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
 #        res[np.where(res < 0)] = 0
 #        res[np.where(res > 1)] = 1
 #        return res
-def opt_taup_find(y, taun, params):
+
+def opt_taup_find(y, s_prey, params):
+    k = s_prey * y[1] / params['cp']
+    c = params['eps'] * s_prey * y[1] / params['phi0']
+    x = 1 / 3 * (2 ** (2 / 3) / (
+                3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (1 / 3)
+                 + (3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (
+                             1 / 3) / (2 ** (2 / 3) * k ** 2) - 2 / k)
+    #print(x.shape, c.shape, k.shape, y.shape, s_prey.shape)
+    return x
+
+def opt_taup_find_old(y, taun, params):
     C = y[0]
     N = y[1]
     P = y[2]
@@ -156,62 +167,6 @@ def opt_taup_find(y, taun, params):
         return res
 
 
-
-def opt_taun_find_grad(y, params, dummy):
-    C, N, P = y[0], y[1], y[2]
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-
-
-    taun_fitness_II = lambda s_prey: \
-        epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * opt_taup_find(y, s_prey, params) * s_prey * P / (opt_taup_find(y, s_prey, params) * s_prey * N + cp) - mu0 * s_prey - mu1
-
-    taun_fitness_II_d = lambda s_prey: epsn*cmax**2*C/(s_prey*C+cmax)**2 \
-                                       - 3/2*(N**2*cp*(eps/(phi0*N))**(1/2)*s_prey**(5/2))**(-1) - mu0
-
-    taup = lambda s_prey: opt_taup_find(y, s_prey, params)
-    p_term = lambda s_prey : (N*s_prey*taup(s_prey)+cp)
-
-
-
-    taun_fitness_II_d_corrected = lambda s_prey: epsn*(cmax**2)*C/((s_prey*C+cmax)**2) - mu0 \
-                                                 - (cp**2)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
-
-    taun_fitness_II_d_corrected_II = lambda s_prey : (cp**2)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
-
-
-    linsp = np.linspace(0.001, 1, 400)
-
-    type_2_part = lambda s_prey: epsn * cmax * s_prey * C / (s_prey * C + cmax) - mu0*s_prey
-
-    type_2_part_II = lambda s_prey:  cp*taup(s_prey) * s_prey * P / (
-            taup(s_prey) * s_prey * N + cp)
-
-    third_attempt_derivative = lambda s_prey: num_derr(taun_fitness_II, s_prey, 0.000001)
-    third_attempt_derivative_II = lambda s_prey: num_derr(type_2_part_II, s_prey, 0.00001)
-    third_attempt_derivative_III = lambda s_prey: num_derr(taup, s_prey, 0.000001)
-
-    comparison_numbs = taun_fitness_II_d(linsp)
-    max_cands_manual = linsp[np.argmax(taun_fitness_II(linsp))]
-    if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
- #       print(comparison_numbs, max_cands_manual, taun_fitness_II_d_corrected(max_cands_manual))
-        t0 = taun_fitness_II(0)
-        t1 = taun_fitness_II(1)
-#        print(comparison_numbs.max(), comparison_numbs.min(), max_cands_manual, taun_fitness_II_d_corrected(max_cands_manual), taun_fitness_II_d(max_cands_manual), taun_fitness_II(max_cands_manual), taun_fitness_II(1))
-        if t0 > t1:
-            max_cands = 0.0001
-        else:
-            max_cands = 1
-#        max_cands = linsp[np.argmax(taun_fitness_II(linsp))]
-#        max_cands = 0.12
-#        print("Wat", comparison_numbs)
-    else:
-        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
-        mini_mill = linsp[np.where(comparison_numbs < 0)[0][-1]]
-
-        max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
-
-    return max_cands
-
 def opt_taun_find_dumb(y, params, taun_old):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
@@ -254,7 +209,7 @@ def opt_taun_find(y, params, dummy):
 
     taup = lambda s_prey: opt_taup_find(y, s_prey, params) #cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey)) -cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
 
-    taup_prime = lambda s_prey: cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
+    taup_prime = lambda s_prey: (opt_taup_find(y, s_prey+0.0001, params)-opt_taup_find(y, s_prey-0.0001, params))/(2*0.0001) #cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
 
     taun_fitness_II_d = lambda s_prey: epsn*(cmax**2)*C/((s_prey*C+cmax)**2) - mu0 \
                                                  - (cp**2)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
@@ -412,8 +367,8 @@ def binary_search_max(f, n, err = 10**(-8)):
 
 
 
-base = 20
-its = 40
+base = 10
+its = 0
 step_size = 0.5*2.5
 step_size_phi = 0.0025*2.5 #0.00125
 cbar = base
