@@ -54,8 +54,34 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
         taup = opt_taup_find(y, taun, params)
 
     elif opt_prey is True and opt_pred is False:
-        taun = 1
 
+        taun_fitness_II = lambda s_prey: epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * taup(
+            s_prey) * s_prey * P / (taup(s_prey) * s_prey * N + cp) - mu0 * s_prey - mu1
+
+        p_term = lambda s_prey: (N * s_prey + cp)
+
+        taup = lambda s_prey: opt_taup_find(y, s_prey,
+                                            params)  # cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey)) -cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
+
+        taun_fitness_II_d = lambda s_prey: epsn * (cmax ** 2) * C / ((s_prey * C + cmax) ** 2) - mu0 \
+                                           - (cp ** 2) * P * ((s_prey + 1)) / (p_term(s_prey)) ** 2
+
+
+        linsp = np.linspace(0.001, 1, 100)
+        comparison_numbs = (taun_fitness_II_d(linsp))
+        if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
+            t0 = taun_fitness_II(0)
+            t1 = taun_fitness_II(1)
+            if t0 > t1:
+                max_cands = 0
+            else:
+                max_cands = 1
+
+        else:
+            maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
+            max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[0.001, maxi_mill], method='brentq').root
+
+        taun = min(max(max_cands, 0), 1)
     elif opt_pred is True and opt_prey is False:
         taup = min(max(taup(1, N),0),1)
 
@@ -350,7 +376,7 @@ def optimal_behavior_trajectories(t, y, params, opt_prey = True, opt_pred=True, 
     P = y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
     if seasons is True:
-        Cdot = lam*(2*cbar*np.cos(t*np.pi/40) - C) - cmax*N*taun*C/(taun*C+cmax)  # t is one month
+        Cdot = lam*(cbar+0.5*cbar*np.cos(t*np.pi/6) - C) - cmax*N*taun*C/(taun*C+cmax)  # t is one month
     else:
         Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+cmax)
     flux_c_to_n = N*taun*C/(taun*C+cmax)
@@ -370,9 +396,8 @@ def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_
     for i in range(1, int(t_final / step_size)):
         taun_best, taup_best = strat_finder(solution[:,i-1], params, opt_prey = opt_prey, opt_pred = opt_pred, taun_old = strat[0,i-1])
         strat[:, i] = taun_best, taup_best
-
-        fwd = f(t[i], solution[:, i - 1], taun_best, taup_best)
         t[i] = t[i-1] + step_size
+        fwd = f(t[i], solution[:, i - 1], taun_best, taup_best)
         solution[:, i] = solution[:, i-1] + step_size*fwd[0:3]
         flux[:, i] = fwd[3:]
     return t, solution, flux, strat
@@ -393,7 +418,7 @@ def binary_search_max(f, n, err = 10**(-8)):
 
 
 
-base = 6
+base = 10
 its = 0
 step_size = 0.5*2.5
 step_size_phi = 0.0025*2.5 #0.00125
