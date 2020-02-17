@@ -54,12 +54,10 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
         taup = opt_taup_find(y, taun, params)
 
     elif opt_prey is True and opt_pred is False:
-        taun = min(max(optm.minimize(lambda s_prey: -(cmax*epsn*s_prey*C/(s_prey*C+cmax)
-                                                      - cp*taup * s_prey*P/(taup*s_prey*N + cp)
-                                                      - mu0*s_prey - mu1), 0.5).x[0],0),1)
+        taun = 1
 
     elif opt_pred is True and opt_prey is False:
-        taup = min(max(taup(taun, N),0),1)
+        taup = min(max(taup(1, N),0),1)
 
     return taun, taup
 
@@ -352,7 +350,7 @@ def optimal_behavior_trajectories(t, y, params, opt_prey = True, opt_pred=True, 
     P = y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
     if seasons is True:
-        Cdot = lam*(cbar+0.5*cbar*np.cos(t*np.pi/180) - C) - N*taun*C/(taun*C+cmax)  # t is one month
+        Cdot = lam*(2*cbar*np.cos(t*np.pi/40) - C) - cmax*N*taun*C/(taun*C+cmax)  # t is one month
     else:
         Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+cmax)
     flux_c_to_n = N*taun*C/(taun*C+cmax)
@@ -395,8 +393,8 @@ def binary_search_max(f, n, err = 10**(-8)):
 
 
 
-base = 20
-its = 40
+base = 6
+its = 0
 step_size = 0.5*2.5
 step_size_phi = 0.0025*2.5 #0.00125
 cbar = base
@@ -511,14 +509,14 @@ if its > 0:
     plt.colorbar()
     plt.show()
 
-t_end = 40
+t_end = 100
 
 
 init = np.array([8.85361793, 6.85670493, 6.48515033]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
 tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
-optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=True, opt_pred=True)
+optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = True), params_ext, opt_prey=True, opt_pred=True)
 tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
-optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext, opt_prey=False, opt_pred=False)
+optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = True), params_ext, opt_prey=False, opt_pred=False)
 
 #print(optimal_behavior_trajectories(0, sol[:,-10], params_ext))
 
