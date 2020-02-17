@@ -63,6 +63,7 @@ def opt_taup_find(y, s_prey, params):
                  + (3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (
                              1 / 3) / (2 ** (2 / 3) * k ** 2) - 2 / k)
     #print(x.shape, c.shape, k.shape, y.shape, s_prey.shape)
+#    print(x)
     return x
 
 
@@ -116,40 +117,8 @@ def opt_taup_find_old(y, taun, params):
                 res = 0
         return res
 
-def taun_fitness_II_notused(s_prey, y, params):
-    C, N, P = y[0], y[1], y[2]
-
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-
-    taup = taup_find(s_prey, y, params)
-
-    return epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * taup * s_prey * P / (
-                    taup * s_prey * N + cp) - mu0 * s_prey - mu1
-
-def taup_find_notuseds(s_prey, y, params):
-    C, N, P = y[0], y[1], y[2]
-
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-    taup = cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
-    taup[taup < 0] = 0
-    taup[taup > 1] = 1
-    print(taup, "Is it fucking up here", C, N, P)
-    return taup
 
 
-def taun_fitness_II_d_notused(s_prey, y, params):
-    C, N, P = y[0], y[1], y[2]
-
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-
-    taup = taup_find(s_prey, y, params)
-
-    p_term = (N*s_prey*taup+cp)
-
-    taup_prime = cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
-
-    return epsn*(cmax**2)*C/((s_prey*C+cmax)**2) - mu0 \
-           - (cp**2)*P*((s_prey*taup_prime+taup)/(p_term**2))
 
 def opt_taun_find(y, params, dummy):
     C, N, P = y[0], y[1], y[2]
@@ -168,12 +137,18 @@ def opt_taun_find(y, params, dummy):
                                                  - (cp**2)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
     linsp = np.linspace(0.0001 , 1, 100)
     comparison_numbs = taun_fitness_II_d(linsp)
+    if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
+        t0 = taun_fitness_II(0.0001)
+        t1 = taun_fitness_II(1)
+        if t0 > t1:
+            max_cands = 0.0001
+        else:
+            max_cands = 1
 
-
-
-    maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
-    mini_mill = linsp[np.where(comparison_numbs < 0)[0][-1]]
-    max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
+    else:
+        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
+        mini_mill = linsp[np.where(comparison_numbs < 0)[0][-1]]
+        max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
     #max_cands_two[2] = max_cands
 
     return max_cands #max_cands_two[np.argmax(taun_fitness_II(max_cands_two))]
@@ -248,7 +223,6 @@ def opt_taun_find_old(y, params, dummy):
         maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
         max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[0.001, maxi_mill], method='brentq').root
 
-    print()
     return max_cands
 
 
@@ -299,12 +273,12 @@ def heatmap_plotter(data, title, image_name, ext):
 
     plt.savefig(image_name+".png", bbox_inches='tight')
 
-base = 20
-its = 40
+base = 10
+its = 80
 step_size = 0.5
-step_size_phi = 0.0025 #0.00125
+step_size_phi = 0.005 #25 #0.00125
 cbar = base
-phi0_base = 0.4
+phi0_base = 0.2
 
 cmax = 2
 mu0 = 0.2
@@ -406,13 +380,13 @@ if its > 0:
         params_ext['resource'] = base + step_size*i
         if i is 0:
             x_ext = np.copy(start_point)
- #       else:
- #           x_ext = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=2*x_ext, method='hybr').x
+        else:
+            x_ext = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=x_ext, method='hybr').x
     #    jac_temp = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), x_ext, h)
     #    print(np.linalg.eig(jac_temp)[0])
         for j in range(its):
             params_ext['phi0'] = phi0_base+j*step_size_phi
-            if i is 0:
+            if j is 0:
                 x_prev = np.copy(x_ext)
                 sol_temp = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=x_prev, method='hybr')
                 x_prev = sol_temp.x
@@ -425,11 +399,12 @@ if its > 0:
             jac_temp = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), x_prev, h)
             #print(np.linalg.eig(jac_temp)[0], x_prev, params_ext["phi0"], params_ext["resource"])
 #            print(np.real(np.linalg.eig(jac_temp)[0].max()))
-#            eigen_max[i, j] = np.real(np.linalg.eig(jac_temp)[0].max())
+            eigen_max[i, j] = np.real(np.linalg.eig(jac_temp)[0].max())
             res_nums[i, j] = x_prev[0]
             prey_nums[i, j] = x_prev[1]
             pred_nums[i, j] = x_prev[2]
             taun_grid[i, j], taup_grid[i, j] = strat_finder(x_prev, params_ext)
+#            print(taup_grid[i, j], j)
 #            if eigen_max[i, j] > 0:
 #                print("Oh no!")
 
@@ -442,12 +417,12 @@ if its > 0:
     temporary_thingy = np.zeros((its, its))
     temporary_thingy[0,:] = 1
     heatmap_plotter(temporary_thingy, "test", "test", ran)
-    heatmap_plotter(res_nums, 'Resource g/m^3', "resource_conc", ran)
-    heatmap_plotter(prey_nums, 'Prey g/m^3', "prey_conc", ran)
-    heatmap_plotter(pred_nums, 'Predators g/m^3', "pred_conc", ran)
-    heatmap_plotter(taun_grid, 'Prey foraging intensity', "prey_for", ran)
-    heatmap_plotter(taup_grid, 'Predator foraging intensity', "pred_for", ran)
-    heatmap_plotter(eigen_max, 'Eigenvalues', "Eigenvalues", ran)
+    heatmap_plotter(res_nums.T, 'Resource g/m^3', "resource_conc", ran)
+    heatmap_plotter(prey_nums.T, 'Prey g/m^3', "prey_conc", ran)
+    heatmap_plotter(pred_nums.T, 'Predators g/m^3', "pred_conc", ran)
+    heatmap_plotter(taun_grid.T, 'Prey foraging intensity', "prey_for", ran)
+    heatmap_plotter(taup_grid.T, 'Predator foraging intensity', "pred_for", ran)
+    heatmap_plotter(eigen_max.T, 'Eigenvalues', "Eigenvalues", ran)
 
 #    plt.figure()
 #    plt.title('Resource kg/m^3')

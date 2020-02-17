@@ -395,8 +395,8 @@ def binary_search_max(f, n, err = 10**(-8)):
 
 
 
-base = 40
-its = 0
+base = 20
+its = 40
 step_size = 0.5*2.5
 step_size_phi = 0.0025*2.5 #0.00125
 cbar = base
