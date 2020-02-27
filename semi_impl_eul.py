@@ -14,7 +14,7 @@ mass_vector = np.array([1, 100, 1000])
 import numpy as np
 
 
-mass_vector = np.array([1, 100, 1000])
+mass_vector = np.array([0.01, 1, 10])
 
 def parameter_calculator(mass_vector):
     X0 = 10 **(-4) #kg**(0.75) m^(-3)
