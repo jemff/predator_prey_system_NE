@@ -14,7 +14,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
 
-mass_vector = np.array([1, 10, 100])
+mass_vector = np.array([1, 10, 1000])
 
 def parameter_calculator(mass_vector):
     X0 = 10 **(-4) #kg**(0.75) m^(-3)
@@ -39,8 +39,8 @@ def parameter_calculator(mass_vector):
 
     alpha = a0*mass_vector**(pv+2*pd*(D-1))
     search_rate = np.pi * V0 * d0 ** 2 \
-                  * (mass_vector[1:]) ** (pv + 1 * pd* (D - 1)) \
-                  * (mass_vector[0:2] ** (2 * pd))*seconds_per_month
+                  * (mass_vector[1:]) ** (2/(3)) \
+                  * (mass_vector[0:2] ** (2/3))*seconds_per_month
 
     inner_term = Rp*1/mass_vector[0:2]  # Simplified
     second_term = (1 + (np.log10(inner_term)) ** 2) ** (-0.2)
@@ -48,7 +48,7 @@ def parameter_calculator(mass_vector):
 
     attack_probability = outer_term * second_term
 
-    encounter_rate = search_rate * attack_probability *0.1
+    encounter_rate = search_rate * attack_probability * 0.3
 
     # 28*0.2 * (mass_vector[1:])**(beta-1)
 
@@ -173,8 +173,8 @@ def opt_taun_find(y, params, dummy):
             max_cands = 1
 
     else:
-        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
-        mini_mill = linsp[np.where(comparison_numbs < 0)[0][0]]
+        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
+        mini_mill = linsp[np.where(comparison_numbs < 0)[0][-1]]
         max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
         print(max_cands)
 
@@ -248,7 +248,7 @@ lam = 0.5
 
 cost_of_living, nu, growth_max, lam = parameter_calculator(mass_vector)
 
-base = 500*mass_vector[0]**(-0.25) #0.01
+base = 50*mass_vector[0]**(-0.25) #0.01
 cbar = base
 phi0_base = cost_of_living[1]/2
 phi1 = cost_of_living[1] /2
