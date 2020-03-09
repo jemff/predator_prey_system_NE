@@ -61,12 +61,21 @@ def parameter_calculator_too_complicated(mass_vector):
     return ci, nu, maximum_consumption_rate, r0*mass_vector[0]**(beta)
 
 
-mass_vector = np.array([0.002, 1, 500])
+mass_vector = np.array([0.01, 1, 100])
+
+
 def parameter_calculator(mass_vector):
-    maximum_consumption_rate = 31 * mass_vector[1:]**(0.75)
-    ci = 0.01*maximum_consumption_rate
-    r0  = 10
-    nu = 31/216
+    alpha = 0.55*17.5/12
+    b = 330/12
+    v = 0.1 #/12
+    maximum_consumption_rate = alpha * mass_vector[1:]**(0.75)
+
+    ci = v*maximum_consumption_rate
+    #ci[-1] = ci[-1]*0.1
+    #print(maximum_consumption_rate)
+    r0  = 1
+    nu = alpha/b
+    #print(ci)
     return ci, nu, maximum_consumption_rate, r0
 
 
@@ -157,14 +166,27 @@ def opt_taup_find_old_g(y, s_prey, params):
 
 
 def opt_taup_find(y,s_prey,params):
-    k_1 = 2k3/k1 #k3 is phi0, k1 is b eps taun N s^{3/4} aka c_p
-    k_2 = b/alpha taun N
+    s = 100
+    b = 330/12
+    k_1 = b*s**(3/4)*params['eps']*s_prey*y[1]/(2*params['phi0']) #k3 is phi0, k1 is b eps taun N s^{3/4} aka c_p
+    k_2 = 1/params['nu1']*s_prey*y[1]
+#    x = 1 / 3 * ((2 ** (1 / 3) * k_1) / (27 * k_1 ** 2 * k_2 ** 4 + 2 * k_1 ** 3 * k_2 ** 3 + 3 * np.sqrt(3) * np.sqrt(
+#        27 * k_1 ** 4 * k_2 ** 8 + 4 * k_1 ** 5 * k_2 ** 7)) ** (1 / 3)
+#                 - 2 / k_2 +
+#                 (27 * k_1 ** 2 * k_2 ** 4 + 2 * k_1 ** 3 * k_2 ** 3 + 3 * np.sqrt(3) * np.sqrt(
+#                         27 * k_1 ** 4 * k_2 ** 8 + 4 * k_1 ** 5 * k_2 ** 7)) ** (1 / 3) /
+#                 (2 ** (1 / 3) * k_2 ** 2 * k_1)) #See notebook
+    x = 1/3*((27 * k_1 * k_2 ** 4 + 2 * k_2 ** 3 + 3 * np.sqrt(3) * np.sqrt(
+        27 * k_1 ** 2 * k_2 ** 8 + 4 * k_1 * k_2 ** 7)) ** (1 / 3) / (2 ** (1 / 3) * k_2 ** 2) - 2 / k_2 + 2 ** (
+                          1 / 3) / (27 * k_1 * k_2 ** 4 + 2 * k_2 ** 3 + 3 * np.sqrt(3) * np.sqrt(
+        27 * k_1 ** 2 * k_2 ** 8 + 4 * k_1 * k_2 ** 7)) ** (1 / 3))
 
-    x = 1 / 3 * ((2 ** (1 / 3) * k_1) / (27 * k_1 ** 2 * k_2 ** 4 + 2 * k_1 ** 3 * k_2 ** 3 + 3 * np.sqrt(3) * np.sqrt(
-        27 * k_1 ** 4 * k_2 ** 8 + 4 * k_1 ** 5 * k_2 ** 7)) ** (1 / 3) - 2 / k_2 + (
-                             27 * k_1 ** 2 * k_2 ** 4 + 2 * k_1 ** 3 * k_2 ** 3 + 3 * np.sqrt(3) * np.sqrt(
-                         27 * k_1 ** 4 * k_2 ** 8 + 4 * k_1 ** 5 * k_2 ** 7)) ** (1 / 3) / (
-                             2 ** (1 / 3) * k_2 ** 2 * k_1)) #See notebook
+#    if max(x.shape) > 1: Add this back again
+#        x[x>1] = 1
+#    else:
+#        if x[0] > 1:
+#            x[0] = 1
+    #print(k_1, params['phi0'], "terms in opt_taup")
     return x
 
 def opt_taun_find(y, params, dummy):
@@ -249,22 +271,22 @@ step_size_phi = 0.0025*2.5 #0.00125
 #mu1 = 0.2
 #eps = 0.7
 #epsn = 0.7
-#cp = 2
+#cp = 2 m,i
 #phi0 = 0.4 #phi0_base
 #phi1 = 0.2
 #lam = 0.5
 
 cost_of_living, nu, growth_max, lam = parameter_calculator(mass_vector)
 
-base = 500 #*mass_vector[0]**(-0.25) #0.01
+base = 50 #*mass_vector[0]**(-0.25) #0.01
 cbar = base
 phi0_base = cost_of_living[1]/2
 phi1 = cost_of_living[1]/2
-phi0=phi0_base
+phi0 = phi0_base
 
 cmax, cp = growth_max
-mu0 = cost_of_living[0]/2
-mu1 = cost_of_living[0]/2
+mu0 = cost_of_living[0]*2 #*60 #/2
+mu1 = cost_of_living[0]*2 #*10 #/2
 nu0 = nu #nu
 nu1 = nu #nu
 
@@ -377,20 +399,20 @@ if its > 0:
 
 
 print(mu0, mu1, cmax, nu0, phi0, phi1, cp, nu1)
-t_end = 25
+t_end = 15
 
 
-init = 10**(-1)*np.array([8.85361793, 4, 0.001]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
-tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
+init = np.array([base, base, base]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
+tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=True)
-tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
+tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=False)
-tim, sol_3, flux_3, strat_3 = semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
+tim, sol_3, flux_3, strat_3 = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=False)
-tim, sol_4, flux_4, strat_4 = semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
+tim, sol_4, flux_4, strat_4 = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=True)
 
-
+print(sol_2)
 C, N, P =  C, N, P = sol[:,-1]
 
 print(C, N, P, "CNP1", strat_finder(sol[:,-1], params_ext))
@@ -425,7 +447,7 @@ plt.scatter(numbs, (taun_fitness_II(numbs)))
 plt.show()
 
 plt.scatter(numbs, opt_taup_find(y, numbs, params_ext))
-
+print(opt_taup_find(y, numbs, params_ext), "taup", params_ext)
 plt.show()
 
 plt.figure()
