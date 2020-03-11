@@ -1,50 +1,55 @@
 import numpy as np
 
-mass_vector = np.array([1, 10, 1000])
+def static_eq_calc(params):
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
-def parameter_calculator(mass_vector):
-    X0 = 10 **(-4) #kg**(0.75) m^(-3)
-    seconds_per_month = 6 #2419200
-    D = 3
-    no_specs = 2
-    no_specs = no_specs
-    a0 = 10**(-1.77) #m^3 s^(-1) kg^(-1.05)
-    V0 = 0.33 #ms^(-1) kg^pv)
-    pd = 0.2 #Unitless
-    d0 = 1.62 #m kg^(2pd)
-    pv = 0.25 #Unitless
-    Rp = 0.1  #Preferred ratio body-size
-    h0 = 0.01 #10 ** 4 #This seems reasonable since the value range is very wide.  # kg**(beta-1) m
-    r0 = 10#1.71 * 10**(-6) * seconds_per_month #kg**(1-beta) / month
-    L = 1  # kg^(1-beta)s^(-1)
-    beta = 0.75 #Metabolic scaling constant
-    K0 = 100 #kg^beta m^(-3)
-    Cbar0 = 0.01 #Kg biomass pr m^3
-    efficiency = 0.7  # Arbitrary
-    loss_rate = 4.15 * 10 ** (-2) # kg**(beta) m**(-3) #We just multiplied by 1 million because of reasons We s
+    phitild = phi0+phi1
+    mutild = mu0 + mu1
+    C_star = phitild*nu1/(eps*cp-phitild)
+    gam = nu0-cbar+(cmax/lam)*C_star
+    print(gam, gam**2, 4*cbar*nu0, np.sqrt(gam**2+4*cbar*nu0))
+    R_star = (-gam + np.sqrt(gam**2+4*cbar*nu0))/2
+    P_star = (epsn * C_star*R_star*cmax/(R_star+nu0)-mutild*C_star)/(cp*C_star/(C_star+nu1))
 
-    alpha = a0*mass_vector**(pv+2*pd*(D-1))
-    search_rate = np.pi * V0 * d0 ** 2 \
-                  * (mass_vector[1:]) ** (2/(3)) \
-                  * (mass_vector[0:2] ** (2/3))*seconds_per_month
-
-    inner_term = Rp*1/mass_vector[0:2]  # Simplified
-    second_term = (1 + (np.log10(inner_term)) ** 2) ** (-0.2)
-    outer_term = 1 / (1 + 0.25 * np.exp(-mass_vector[1:] ** (0.33)))
-
-    attack_probability = outer_term * second_term
-
-    encounter_rate = search_rate * attack_probability * 0.3
-
-    # 28*0.2 * (mass_vector[1:])**(beta-1)
-
-    handling_time = h0 * mass_vector ** (-beta) #/seconds_per_month
-    ci = 3.5 * loss_rate * (mass_vector[1:] ** (beta)) *seconds_per_month
-    maximum_consumption_rate = 7 * loss_rate * (mass_vector[1:] ** (beta)) *seconds_per_month
-
-    nu = maximum_consumption_rate * 1/encounter_rate
-    print(nu, maximum_consumption_rate,  r0*mass_vector[0]**(beta), ci, encounter_rate)
-    return ci, nu, maximum_consumption_rate, r0*mass_vector[0]**(beta)
+    print(cp*C_star/(C_star+nu1), epsn * C_star*R_star*cmax/(R_star+nu0))
+    return np.array([R_star, C_star, P_star])
 
 
-parameter_calculator(mass_vector)
+mass_vector = np.array([1, 1, 100])
+
+def parameter_calculator_mass(mass_vector):
+    alpha = 15
+    b = 330/12
+    v = 0.2 #/12
+    maximum_consumption_rate = alpha * mass_vector[1:]**(0.75)
+
+    ci = v*maximum_consumption_rate
+    ci[0] = ci[0]
+    #ci[-1] = ci[-1]*0.1
+    #print(maximum_consumption_rate)
+    r0  = 0.1
+    nu = alpha/b*mass_vector[1:]**(0)
+    #print(ci)
+    return ci, nu, maximum_consumption_rate, r0
+
+
+cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector)
+print(nu)
+base = 30 #3 #*mass_vector[0]**(-0.25) #0.01
+cbar = base
+phi0_base = cost_of_living[1]/2#*5
+phi1 = cost_of_living[1]/2 #*2#/2#*5
+phi0 = phi0_base
+eps = 0.7
+epsn = 0.7
+
+cmax, cp = growth_max
+mu0 = cost_of_living[0]/2 #*2#/2#*5 #*60 #/2
+mu1 = cost_of_living[0]/2 #*2 #*2#/2#*5 #*2 #*10 #/2
+nu0 = nu[0] #nu
+nu1 = nu[1] #nu
+
+params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0':phi0, 'phi1': phi1,
+          'resource': base, 'lam':lam, 'nu0':nu0, 'nu1': nu1}
+
+print(static_eq_calc(params_ext), base)

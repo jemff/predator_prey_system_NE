@@ -284,6 +284,18 @@ def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_
         flux[:, i] = fwd[3:]
     return t, solution, flux, strat
 
+def static_eq_calc(params):
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
+
+    phitild = phi0+phi1
+    mutild = mu0 + mu1
+    C_star = phitild*nu1/(eps*cp-phitild)
+    gam = nu0-cbar-cmax/lam*C_star
+    R_star = (-gam+ np.sqrt(gam**2-4*cbar*nu0))/2
+    P_star = mutild*C_star/(epsn * C_star*R_star*cmax/(R_star+nu0)-cp*C_star/(C_star+nu1))
+
+#    print(np.array([C_star, N_star, P_star]))
+    return np.array([R_star, C_star, P_star])
 
 
 #base = 10
@@ -292,29 +304,29 @@ step_size = 0.5*2.5
 step_size_phi = 0.0025*2.5 #0.00125
 #phi0_base = 0.2
 
-#cmax = 2
-#mu0 = 0.2
-#mu1 = 0.2
-#eps = 0.7
-#epsn = 0.7
-#cp = 2 m,i
-#phi0 = 0.4 #phi0_base
-#phi1 = 0.2
-#lam = 0.5
+cmax = 2
+mu0 = 0.2
+mu1 = 0.2
+eps = 0.7
+epsn = 0.7
+cp = 8 #m,i
+phi0 = 0.8 #phi0_base
+phi1 = 0.8
+lam = 0.5
 
-cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector)
+#cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector)
 
-base = 50 #3 #*mass_vector[0]**(-0.25) #0.01
+base = 10 #3 #*mass_vector[0]**(-0.25) #0.01
 cbar = base
-phi0_base = cost_of_living[1]#/2#*5
-phi1 = cost_of_living[1]*2#/2#*5
-phi0 = phi0_base
+#phi0_base = cost_of_living[1]#/2#*5
+#phi1 = cost_of_living[1]*2#/2#*5
+#phi0 = phi0_base
 
-cmax, cp = growth_max
-mu0 = cost_of_living[0] #*2#/2#*5 #*60 #/2
-mu1 = cost_of_living[0]*2 #*2#/2#*5 #*2 #*10 #/2
-nu0 = nu[0] #nu
-nu1 = nu[1] #nu
+#cmax, cp = growth_max
+#mu0 = cost_of_living[0] #*2#/2#*5 #*60 #/2
+#mu1 = cost_of_living[0]*2 #*2#/2#*5 #*2 #*10 #/2
+nu0 = 2 #nu[0] #nu
+nu1 = 2 #nu[1] #nu
 
 eps = 0.4 #0.17
 epsn =  0.4 #0.17
@@ -425,17 +437,17 @@ if its > 0:
 
 
 print(mu0, mu1, cmax, nu0, phi0, phi1, cp, nu1)
-t_end = 20
+t_end = 100
 
 init = np.array([3.252678746139226, 2.2460419897613613, 0.7498879285084376]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
 tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=True)
 tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=False)
-#tim, sol_3, flux_3, strat_3 = semi_implicit_euler(t_end, init, 0.01, lambda t, y, tn, tp:
-#optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=False)
-#tim, sol_4, flux_4, strat_4 = semi_implicit_euler(t_end, init, 0.01, lambda t, y, tn, tp:
-#optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=True)
+tim, sol_3, flux_3, strat_3 = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
+optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=False)
+tim, sol_4, flux_4, strat_4 = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
+optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=True)
 
 print(sol_2)
 C, N, P =  C, N, P = sol[:,-1]
@@ -506,15 +518,25 @@ plt.savefig("Indsvingning_strat.png")
 
 print(strat[0,1:])
 
-#plt.figure()
-#plt.plot(tim, sol[0,:], label = 'Resource biomass')
-#plt.plot(tim, sol_3[1,:], label = 'Dynamic prey biomass', color = 'Green')
-#plt.plot(tim, sol_3[2,:], label = 'Static predator biomass', color = 'Red')
-#plt.plot(tim, sol_4[1,:], label = 'Static prey biomass', linestyle = '-.', color = 'Green')
-#plt.plot(tim, sol_4[2,:], label = 'Dynamic predator biomass', linestyle = '-.', color = 'Red')
+plt.figure()
+plt.plot(tim, sol_3[1,:], label = 'Dynamic prey biomass', color = 'Green')
+plt.plot(tim, sol_3[2,:], label = 'Static predator biomass', color = 'Red')
 
-#plt.xlabel("Months")
-#plt.ylabel("g/m^3")
-#plt.legend(loc = 'upper left')
+plt.title("Dynamic prey, static predator")
+plt.xlabel("Months")
+plt.ylabel("g/m^3")
+plt.legend(loc = 'upper left')
 
-#plt.savefig("Indsvingning_mixed.png")
+plt.savefig("Indsvingning_dynprey.png")
+
+plt.figure()
+plt.plot(tim, sol_4[1,:], label = 'Static prey biomass', linestyle = '-.', color = 'Green')
+plt.plot(tim, sol_4[2,:], label = 'Dynamic predator biomass', linestyle = '-.', color = 'Red')
+
+plt.title("Static prey, dynamic predator")
+plt.xlabel("Months")
+plt.ylabel("g/m^3")
+plt.legend(loc = 'upper left')
+
+plt.savefig("Indsvingning_mixed.png")
+

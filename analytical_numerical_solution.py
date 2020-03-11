@@ -46,14 +46,13 @@ def static_eq_calc(params):
 
     phitild = phi0+phi1
     mutild = mu0 + mu1
-    N_star = phitild*cp/(cp*eps-phitild) #-(epsn*cmax*lam + cp/(phitild*eps))/(cmax*epsn-cp/phitild-mutild)
-    btild = cmax*(1+N_star/lam) - cbar
+    C_star = phitild*nu1/(eps*cp-phitild)
+    gam = nu0-cbar-cmax/lam*C_star
+    R_star = (-gam+ np.sqrt(gam**2-4*cbar*nu0))/2
+    P_star = mutild*C_star/(epsn * C_star*R_star*cmax/(R_star+nu0)-cp*C_star/(C_star+nu1))
 
-    C_star = 1/2*(-btild+np.sqrt(btild**2 + 4*cbar*cmax))
-
-    P_star = (1/cp+1/N_star)*(epsn*lam*(cbar-C_star)-mutild*N_star)
 #    print(np.array([C_star, N_star, P_star]))
-    return np.array([C_star, N_star, P_star])
+    return np.array([R_star, C_star, P_star])
 
 def opt_taup_find(y, s_prey, params):
     k = s_prey * y[1] / params['cp']
@@ -274,23 +273,18 @@ def heatmap_plotter(data, title, image_name, ext):
 
     plt.savefig(image_name+".png", bbox_inches='tight')
 
-base = 10
-its = 80
-step_size = 0.5
-step_size_phi = 0.005 #25 #0.00125
-cbar = base
-phi0_base = 0.2
-
 cmax = 2
 mu0 = 0.2
 mu1 = 0.2
-epsn = 0.7
-
 eps = 0.7
-cp = 2
-phi0 = phi0_base
-phi1 = 0.2
+epsn = 0.7
+cp = 8 #m,i
+phi0 = 0.8 #phi0_base
+phi1 = 0.8
 lam = 0.5
+
+
+base = 10 #3 #*mass_vector[0]**(-0.25) #0.01
 
 opt_prey = True
 opt_pred = True
@@ -317,7 +311,7 @@ if manual_max is True:
 eq_stat = static_eq_calc(params_ext)
 #sol_4 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([base, base, 4/10*base]), method = 'hybr') #Apparently only three real roots.
 
-print(optimal_behavior_trajectories(np.array([6.835213942880785, 9.616519943168255, 3.731972978096975]), params_ext))
+print(optimal_behavior_trajectories(np.array([3.823177394403382, 2.244085194755178, 0.15802986175068165]), params_ext))
 
 sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([8.85361793, 6.85670493, 6.48515033]), method = 'hybr')
 #sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([12.24914961,  0.8,  0.98489586]), method = 'hybr')
