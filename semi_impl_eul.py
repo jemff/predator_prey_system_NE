@@ -61,14 +61,14 @@ def parameter_calculator_too_complicated(mass_vector):
     return ci, nu, maximum_consumption_rate, r0*mass_vector[0]**(beta)
 
 
-mass_vector = np.array([0.01, 1, 100])
+mass_vector = np.array([0.01, 1, 16])
 
 
 def parameter_calculator_mass(mass_vector):
     alpha = 0.55*17.5/12
     b = 330/12
     v = 0.1 #/12
-    maximum_consumption_rate = alpha * mass_vector[1:]**(0.75)
+    maximum_consumption_rate = alpha * mass_vector[1:]**(-0.25)
 
     ci = v*maximum_consumption_rate
     ci[0] = ci[0]
@@ -302,17 +302,17 @@ step_size_phi = 0.0025*2.5 #0.00125
 #phi1 = 0.2
 #lam = 0.5
 
-cost_of_living, nu, growth_max, lam = parameter_calculator(mass_vector)
+cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector)
 
-base = 170 #3 #*mass_vector[0]**(-0.25) #0.01
+base = 50 #3 #*mass_vector[0]**(-0.25) #0.01
 cbar = base
-phi0_base = cost_of_living[1]/2#*5
-phi1 = cost_of_living[1]/2#*5
+phi0_base = cost_of_living[1]#/2#*5
+phi1 = cost_of_living[1]*2#/2#*5
 phi0 = phi0_base
 
 cmax, cp = growth_max
-mu0 = cost_of_living[0]/2#*5 #*60 #/2
-mu1 = cost_of_living[0]/2#*5 #*2 #*10 #/2
+mu0 = cost_of_living[0] #*2#/2#*5 #*60 #/2
+mu1 = cost_of_living[0]*2 #*2#/2#*5 #*2 #*10 #/2
 nu0 = nu[0] #nu
 nu1 = nu[1] #nu
 
@@ -425,7 +425,7 @@ if its > 0:
 
 
 print(mu0, mu1, cmax, nu0, phi0, phi1, cp, nu1)
-t_end = 200
+t_end = 20
 
 init = np.array([3.252678746139226, 2.2460419897613613, 0.7498879285084376]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
 tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
