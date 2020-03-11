@@ -14,7 +14,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
 
-mass_vector = np.array([1, 10, 1000])
+mass_vector = np.array([0.01, 1, 10])
 
 def parameter_calculator_too_complicated(mass_vector):
     X0 = 10 **(-4) #kg**(0.75) m^(-3)
@@ -64,20 +64,29 @@ def parameter_calculator_too_complicated(mass_vector):
 mass_vector = np.array([0.01, 1, 100])
 
 
-def parameter_calculator(mass_vector):
+def parameter_calculator_mass(mass_vector):
     alpha = 0.55*17.5/12
     b = 330/12
     v = 0.1 #/12
     maximum_consumption_rate = alpha * mass_vector[1:]**(0.75)
 
     ci = v*maximum_consumption_rate
+    ci[0] = ci[0]
     #ci[-1] = ci[-1]*0.1
     #print(maximum_consumption_rate)
-    r0  = 1
-    nu = alpha/b
+    r0  = 0.01
+    nu = alpha/b*mass_vector[1:]**(-0.25)
     #print(ci)
     return ci, nu, maximum_consumption_rate, r0
 
+def parameter_calculator(mass_vector):
+    #bob koii parameters
+    maximum_consumption_rate = np.array([1.25, 0.25])
+    nu = np.array([8, 1])
+    ci = np.array([0.025+0.072, 0.0075+0.072])
+    r0 = 0.01
+
+    return ci, nu, maximum_consumption_rate, r0
 
 def heatmap_plotter(data, title, image_name, ext):
     plt.figure()
@@ -129,7 +138,7 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
                                            - (cp * nu1) * P * ((s_prey + 1)) / (p_term(s_prey)) ** 2
 
 
-        linsp = np.linspace(0.0001, 1, 100)
+        linsp = np.linspace(0.001, 1, 100)
         comparison_numbs = (taun_fitness_II_d(linsp))
         if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
             t0 = taun_fitness_II(0)
@@ -149,12 +158,12 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
 
         taun = min(max(max_cands, 0.0001), 1)
     elif opt_pred is True and opt_prey is False:
-        taup = min(max(opt_taup_find(y, 1, params),0),1)
+        taup = min(max(opt_taup_find(y, 1, params), 0),1)
 
     return taun, taup
 
 
-def opt_taup_find_old_g(y, s_prey, params):
+def opt_taup_find(y, s_prey, params):
     #print(params)
     k = s_prey * y[1] / params['nu1']
     c = params['cp']/params['nu1']*params['eps'] * s_prey * y[1] / params['phi0']
@@ -162,13 +171,22 @@ def opt_taup_find_old_g(y, s_prey, params):
                 3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (1 / 3)
                  + (3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (
                              1 / 3) / (2 ** (2 / 3) * k ** 2) - 2 / k) #Why was WA not included!?!?
+    x = np.array([x])
+    if max(x.shape) > 1:
+        x = np.squeeze(x)
+        x[x > 1] = 1
+        #print("Alarm!")
+    else:
+        if x[0] > 1:
+            x[0] = 1
+            print("Alarm, single!", s_prey)
     return x
 
 
-def opt_taup_find(y,s_prey,params):
-    s = 100
-    b = 330/12
-    k_1 = b*s**(3/4)*params['eps']*s_prey*y[1]/(2*params['phi0']) #k3 is phi0, k1 is b eps taun N s^{3/4} aka c_p
+def opt_taup_find_wazzup(y,s_prey,params): #This is the most recent derivation, it might be wrong tho. The other one is more battle-tested
+    #s = 100
+    #b = 330/12
+    k_1 = params['cp']/params['nu1']*params['eps']*s_prey*y[1]/(2*params['phi0']) #k3 is phi0, k1 is b eps taun N s^{3/4} aka c_p #b*s**(3/4)
     k_2 = 1/params['nu1']*s_prey*y[1]
 #    x = 1 / 3 * ((2 ** (1 / 3) * k_1) / (27 * k_1 ** 2 * k_2 ** 4 + 2 * k_1 ** 3 * k_2 ** 3 + 3 * np.sqrt(3) * np.sqrt(
 #        27 * k_1 ** 4 * k_2 ** 8 + 4 * k_1 ** 5 * k_2 ** 7)) ** (1 / 3)
@@ -189,7 +207,7 @@ def opt_taup_find(y,s_prey,params):
     #print(k_1, params['phi0'], "terms in opt_taup")
     return x
 
-def opt_taun_find(y, params, dummy):
+def opt_taun_find(y, params, taun_old):
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
@@ -204,25 +222,33 @@ def opt_taun_find(y, params, dummy):
     taun_fitness_II_d = lambda s_prey: epsn*(cmax*nu0)*C/((s_prey*C+nu0)**2) - 2*s_prey*mu0 \
                                             - (nu1*cp)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
 
-    linsp = np.linspace(0.0001 , 1, 100)
-    #print(
+    linsp = np.linspace(0.001 , 1, 100)
     comparison_numbs = taun_fitness_II_d(linsp)
+    alt_max_cand = linsp[np.argmax(taun_fitness_II(linsp))]
+
     #print(comparison_numbs)
     if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
-        t0 = taun_fitness_II(0.0001)
+        t0 = taun_fitness_II(0.001)
         t1 = taun_fitness_II(1)
         if t0 > t1:
-            max_cands = 0.0001
+            max_cands = 0.001
         else:
             max_cands = 1
+        print("dong dong")
 
     else:
-        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
-        mini_mill = linsp[np.where(comparison_numbs < 0)[0][-1]]
+        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
+        mini_mill = linsp[np.where(comparison_numbs < 0)[0][0]]
         max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
-
+        #print("ding ding", taun_fitness_II(max_cands), np.max(taun_fitness_II(linsp)))
    # print(num_derr(taun_fitness_II, max_cands, 0.0001), taun_fitness_II_d(max_cands), max_cands)
-    print(np.max(taun_fitness_II(linsp)), taun_fitness_II(max_cands))
+   # print(np.max(taun_fitness_II(linsp)), taun_fitness_II(max_cands))
+    if taun_fitness_II(max_cands)<=taun_fitness_II(alt_max_cand):
+        max_cands = alt_max_cand
+        print("Ding dong sling slong")
+    #if taun_fitness_II(max_cands)<0:
+        #print(taun_fitness_II(0.001), taun_fitness_II(1), taun_fitness_II(alt_max_cand), taun_fitness_II(max_cands))
+    #print(taun_fitness_II(taun_old), taun_fitness_II(max_cands))
     return max_cands #max_cands_two[np.argmax(taun_fitness_II(max_cands_two))]
 
 
@@ -278,20 +304,20 @@ step_size_phi = 0.0025*2.5 #0.00125
 
 cost_of_living, nu, growth_max, lam = parameter_calculator(mass_vector)
 
-base = 50 #*mass_vector[0]**(-0.25) #0.01
+base = 170 #3 #*mass_vector[0]**(-0.25) #0.01
 cbar = base
-phi0_base = cost_of_living[1]/2
-phi1 = cost_of_living[1]/2
+phi0_base = cost_of_living[1]/2#*5
+phi1 = cost_of_living[1]/2#*5
 phi0 = phi0_base
 
 cmax, cp = growth_max
-mu0 = cost_of_living[0]*2 #*60 #/2
-mu1 = cost_of_living[0]*2 #*10 #/2
-nu0 = nu #nu
-nu1 = nu #nu
+mu0 = cost_of_living[0]/2#*5 #*60 #/2
+mu1 = cost_of_living[0]/2#*5 #*2 #*10 #/2
+nu0 = nu[0] #nu
+nu1 = nu[1] #nu
 
-eps = 0.7
-epsn = 0.7
+eps = 0.4 #0.17
+epsn =  0.4 #0.17
 #phi0 = 0.4 #phi0_base
 
 opt_prey = True
@@ -399,24 +425,23 @@ if its > 0:
 
 
 print(mu0, mu1, cmax, nu0, phi0, phi1, cp, nu1)
-t_end = 15
+t_end = 200
 
-
-init = np.array([base, base, base]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
-tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
+init = np.array([3.252678746139226, 2.2460419897613613, 0.7498879285084376]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
+tim, sol, flux, strat = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=True)
-tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
+tim, sol_2, flux_2, strat_2 = semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
 optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=False)
-tim, sol_3, flux_3, strat_3 = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
-optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=False)
-tim, sol_4, flux_4, strat_4 = semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
-optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=True)
+#tim, sol_3, flux_3, strat_3 = semi_implicit_euler(t_end, init, 0.01, lambda t, y, tn, tp:
+#optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=False)
+#tim, sol_4, flux_4, strat_4 = semi_implicit_euler(t_end, init, 0.01, lambda t, y, tn, tp:
+#optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=True)
 
 print(sol_2)
 C, N, P =  C, N, P = sol[:,-1]
 
 print(C, N, P, "CNP1", strat_finder(sol[:,-1], params_ext))
-print(sol_3[:,-1], sol_4[:,-1], "Other optimal combinations, population levels")
+#print(sol_3[:,-1], sol_4[:,-1], "Other optimal combinations, population levels")
 
 y = np.array([C, N, P])
 numbs = np.linspace(0,1,500)
@@ -447,7 +472,7 @@ plt.scatter(numbs, (taun_fitness_II(numbs)))
 plt.show()
 
 plt.scatter(numbs, opt_taup_find(y, numbs, params_ext))
-print(opt_taup_find(y, numbs, params_ext), "taup", params_ext)
+#print(opt_taup_find(y, numbs, params_ext), "taup", params_ext)
 plt.show()
 
 plt.figure()
@@ -459,7 +484,7 @@ plt.plot(tim, sol_2[2,:], label = 'Static predator biomass', linestyle = '-.', c
 
 plt.xlabel("Months")
 plt.ylabel("g/m^3")
-plt.legend(loc = 'lower left')
+plt.legend(loc = 'upper left')
 
 plt.savefig("Indsvingning.png")
 
@@ -480,3 +505,16 @@ plt.legend(loc = 'center left')
 plt.savefig("Indsvingning_strat.png")
 
 print(strat[0,1:])
+
+#plt.figure()
+#plt.plot(tim, sol[0,:], label = 'Resource biomass')
+#plt.plot(tim, sol_3[1,:], label = 'Dynamic prey biomass', color = 'Green')
+#plt.plot(tim, sol_3[2,:], label = 'Static predator biomass', color = 'Red')
+#plt.plot(tim, sol_4[1,:], label = 'Static prey biomass', linestyle = '-.', color = 'Green')
+#plt.plot(tim, sol_4[2,:], label = 'Dynamic predator biomass', linestyle = '-.', color = 'Red')
+
+#plt.xlabel("Months")
+#plt.ylabel("g/m^3")
+#plt.legend(loc = 'upper left')
+
+#plt.savefig("Indsvingning_mixed.png")

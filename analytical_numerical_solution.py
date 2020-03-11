@@ -42,7 +42,7 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True):
     return taun, taup
 
 def static_eq_calc(params):
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
     phitild = phi0+phi1
     mutild = mu0 + mu1
@@ -63,7 +63,8 @@ def opt_taup_find(y, s_prey, params):
                  + (3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (
                              1 / 3) / (2 ** (2 / 3) * k ** 2) - 2 / k)
     #print(x.shape, c.shape, k.shape, y.shape, s_prey.shape)
-#    print(x)
+    print(x)
+
     return x
 
 
