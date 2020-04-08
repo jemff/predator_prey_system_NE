@@ -8,94 +8,7 @@ from io import StringIO
 from scipy import optimize as optm
 import scipy.integrate
 from multiprocessing import Pool
-def jacobian_calculator(f, x, h):
-    jac = np.zeros((x.shape[0], x.shape[0]))
-    x_m = np.copy(x)
-    x_p = np.copy(x)
-    for i in range(len((x))) :
-        x_m[i] -= h
-        x_p[i] += h
-        jac[:, i] = (f(x_p) - f(x_m))/(2*h)
-        x_m = np.copy(x)
-        x_p = np.copy(x)
-
-    return jac
-
-def strat_finder(y, params, opt_prey = True, opt_pred = True):
-    C, N, P = y[0], y[1], y[2]
-    taun = 1
-    taup = 1
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-
-    if opt_prey is True and opt_pred is True:
-        taun = min(max(opt_taun_find(y, params, 0.5), 0), 1)
-        taup = min(max(opt_taup_find(y, taun, params), 0), 1)
-
-    elif opt_prey is True and opt_pred is False:
-        taun = min(max(optm.minimize(lambda s_prey: -(cmax*epsn*s_prey*C/(s_prey*C+cmax)
-                                                      - cp*taup * s_prey*P/(taup*s_prey*N + cp)
-                                                      - mu0*s_prey - mu1), 0.5).x[0],0),1)
-
-    elif opt_pred is True and opt_prey is False:
-        taup = min(max(taup(taun, N),0),1)
-
-    return taun, taup
-
-def static_eq_calc(params):
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
-
-    phitild = phi0+phi1
-    mutild = mu0 + mu1
-    C_star = phitild*nu1/(eps*cp-phitild)
-    gam = nu0-cbar-cmax/lam*C_star
-    R_star = (-gam+ np.sqrt(gam**2-4*cbar*nu0))/2
-    P_star = mutild*C_star/(epsn * C_star*R_star*cmax/(R_star+nu0)-cp*C_star/(C_star+nu1))
-
-#    print(np.array([C_star, N_star, P_star]))
-    return np.array([R_star, C_star, P_star])
-
-def opt_taup_find(y, s_prey, params):
-    k = s_prey * y[1] / params['cp']
-    c = params['eps'] * s_prey * y[1] / params['phi0']
-    x = 1 / 3 * (2 ** (2 / 3) / (
-                3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (1 / 3)
-                 + (3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (
-                             1 / 3) / (2 ** (2 / 3) * k ** 2) - 2 / k)
-    #print(x.shape, c.shape, k.shape, y.shape, s_prey.shape)
-    print(x)
-
-    return x
-
-
-def opt_taup_find_linear(y, taun, params):
-    N = y[1]
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-    if taun is 0:
-        return 0
-    else:
-        res1 = cp * (np.sqrt(eps / (phi0 * taun * N)) - 1 / (N * taun))
-        res2 = -res1
-
-        res1 = max(min(res1, 1),0)
-        res2 = max(min(res2, 1),0)
-
-        r1 = cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1
-        r2 = cp * eps * res2 * taun * N / (N * res2 * taun + cp) - phi0 * res2 - phi1
-
-#        print(r1, "r1", r2, "r2", res1, res2,  cp * eps * 1 * taun * N / (N * 1 * taun + cp) - phi0 * 1 - phi1, -phi1)
-#        res = res1
-#        res[r2>r1] = res[r2 > r1]
-        if r1 > r2:
-            res = res1
-        else:
-            res = res2
-#            print("Ding ding")
-#        res = res2
-#        print(res, taun)
-        return res
-
-
-
+from common_functions import *
 
 def opt_taup_find_old(y, taun, params):
     C = y[0]
@@ -116,42 +29,6 @@ def opt_taup_find_old(y, taun, params):
             else:
                 res = 0
         return res
-
-
-
-
-def opt_taun_find(y, params, dummy):
-    C, N, P = y[0], y[1], y[2]
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-
-    taun_fitness_II = lambda s_prey: epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * taup(s_prey) * s_prey * P / (
-                    taup(s_prey) * s_prey * N + cp) - mu0 * s_prey - mu1
-    p_term = lambda s_prey : (N*s_prey*taup(s_prey)+cp)
-
-
-    taup = lambda s_prey: opt_taup_find(y, s_prey, params) #cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey)) -cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
-
-    taup_prime = lambda s_prey: (opt_taup_find(y, s_prey+0.0001, params)-opt_taup_find(y, s_prey-0.0001, params))/(2*0.0001) #cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
-
-    taun_fitness_II_d = lambda s_prey: epsn*(cmax**2)*C/((s_prey*C+cmax)**2) - mu0 \
-                                                 - (cp**2)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
-    linsp = np.linspace(0.0001 , 1, 100)
-    comparison_numbs = taun_fitness_II_d(linsp)
-    if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
-        t0 = taun_fitness_II(0.0001)
-        t1 = taun_fitness_II(1)
-        if t0 > t1:
-            max_cands = 0.0001
-        else:
-            max_cands = 1
-
-    else:
-        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
-        mini_mill = linsp[np.where(comparison_numbs < 0)[0][-1]]
-        max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
-    #max_cands_two[2] = max_cands
-
-    return max_cands #max_cands_two[np.argmax(taun_fitness_II(max_cands_two))]
 
 
 def opt_taun_find_dumb_dumb(y, params, dummy):
@@ -243,12 +120,14 @@ def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True):
     C = y[0]
     N = y[1]
     P = y[2]
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-    taun, taup = strat_finder(y, params, opt_prey = opt_prey, opt_pred = opt_pred)
-    Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+cmax)
-    Ndot = N*(epsn*cmax*taun*C/(taun*C+cmax) - taup * taun*P*cp*1/(taup*taun*N + cp) - mu0*taun - mu1)
-    Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + cp) - phi0*taup - phi1)
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
+    taun, taup = strat_finder(y, params, opt_prey = opt_prey, opt_pred = opt_pred)
+
+    Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+nu0)
+    Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp/(taup*taun*N + nu1) - mu1)
+    Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1)
+#    print(taun, taup, cbar, Ndot)
 #    print(Cdot, Ndot, Pdot,epsn*cmax*taun*C/(taun*C+cmax) - taup * taun*P*cp*1/(taup*taun*N + cp) - mu0*taun - mu1)
 
     return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
@@ -273,26 +152,13 @@ def heatmap_plotter(data, title, image_name, ext):
 
     plt.savefig(image_name+".png", bbox_inches='tight')
 
-cmax = 2
-mu0 = 0.2
-mu1 = 0.2
-eps = 0.7
-epsn = 0.7
-cp = 8 #m,i
-phi0 = 0.8 #phi0_base
-phi1 = 0.8
-lam = 0.5
 
 
-base = 10 #3 #*mass_vector[0]**(-0.25) #0.01
+its = 0
 
 opt_prey = True
 opt_pred = True
 #Currently the affinity is set to 1!!
-
-params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0':phi0, 'phi1': phi1,
-          'resource': base, 'lam':lam}
-
 
 manual_max = False
 if manual_max is True:
@@ -306,59 +172,15 @@ if manual_max is True:
 
     print("I'm done")
 
+def flux_calculator(R, C, P, taun, taup, params):
 
+    flux_01 = params['cmax']*C * taun * R / (taun * R + params['nu0'])
+    flux_12 = C * taup * taun * P * params['cp']* 1 / (taup * taun * C + params['nu1'])
+    flux_2n = P*params['phi0'] * taup ** 2
 
-eq_stat = static_eq_calc(params_ext)
-#sol_4 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([base, base, 4/10*base]), method = 'hybr') #Apparently only three real roots.
+    return np.array([flux_01, flux_12, flux_2n])
 
-print(optimal_behavior_trajectories(np.array([3.823177394403382, 2.244085194755178, 0.15802986175068165]), params_ext))
-
-sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([8.85361793, 6.85670493, 6.48515033]), method = 'hybr')
-#sol_3 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([12.24914961,  0.8,  0.98489586]), method = 'hybr')
-#sol_2 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1/2*(base), 1/6*base]), method = 'hybr')
-#sol = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = eq_stat, method = 'hybr')
-#sol_4 = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([12.24914961,  0.8,  0.98489586]), method = 'broyden1')
-#sol_hybr = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1/2*(base), 1/4*(base)]), method = 'hybr')
-#sol_hybr = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = sol.x, method = 'hybr')
-
-
-#sol = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0 = np.array([2/3*base, 1.5, 1.5]), method = 'krylov')
-sol_static = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False), x0 = np.array([2/3*base, 1.5, 1.5]), method = 'hybr')
-
-h = 0.00005
-#jac = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol.x, h)
-#jac_stat = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False), eq_stat, h)
-#jac_2 = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol_2.x, h)
-jac_3 = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol_3.x, h)
-#jac_4 = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), sol_4.x, h)
-
-
-#print(sol.success)
-#print(sol.message, sol.x, "Sol 1")
-#print(sol_2.message, sol_2.x, "Sol 2")
-print(sol_3.message, sol_3.x, "Sol 3")
-#print(sol_3)
-#print(sol_4.message, sol_4.x, "SOL FOUR")
-
-#sol_final = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False)/((y-sol.x)*(y-sol_2.x)*(y-sol_3.x)*(y-sol_4.x)), x0 = np.array([base,base,base]), method = 'hybr')
-
-#print(sol_final, "DER ENDLÖSUNG")
-#print(strat_finder(sol.x, params_ext))
-print(sol_static.x)
-#print(jac)
-#print(np.linalg.eig(jac)[0], "Jac1")
-#print(np.linalg.eig(jac_2)[0], "Jac2")
-print(np.linalg.eig(jac_3)[0], "Jac3")
-#print(np.linalg.eig(jac_4)[0], "Jac4")
-
-
-#print(np.linalg.eig(jac_stat)[0])
-#print(np.linalg.eig(jac))
-
-eq_stat = static_eq_calc(params_ext)
-#print(eq_stat.shape)
-#print(optimal_behavior_trajectories(eq_stat, params_ext, opt_pred=False, opt_prey=False))
-
+its = 0
 if its > 0:
     taun_grid = np.zeros((its, its))
     taup_grid = np.zeros((its, its))

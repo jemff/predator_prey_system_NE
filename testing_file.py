@@ -24,7 +24,6 @@ def parameter_calculator_mass(mass_vector):
     maximum_consumption_rate = alpha * mass_vector[1:]**(0.75)
 
     ci = v*maximum_consumption_rate
-    ci[0] = ci[0]
     #ci[-1] = ci[-1]*0.1
     #print(maximum_consumption_rate)
     r0  = 0.1
@@ -34,18 +33,16 @@ def parameter_calculator_mass(mass_vector):
 
 
 cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector)
-print(nu)
-base = 30 #3 #*mass_vector[0]**(-0.25) #0.01
-cbar = base
-phi0_base = cost_of_living[1]/2#*5
+print(nu, "nu", growth_max)
+base = 50 #3 #*mass_vector[0]**(-0.25) #0.01
+phi0= cost_of_living[1]/2 #/2#*5
 phi1 = cost_of_living[1]/2 #*2#/2#*5
-phi0 = phi0_base
 eps = 0.7
 epsn = 0.7
 
 cmax, cp = growth_max
-mu0 = cost_of_living[0]/2 #*2#/2#*5 #*60 #/2
-mu1 = cost_of_living[0]/2 #*2 #*2#/2#*5 #*2 #*10 #/2
+mu0 = 0 # cost_of_living[0] #/3 #*2#/2#*5 #*60 #/2
+mu1 = cost_of_living[0]#/3 #*2 #*2#/2#*5 #*2 #*10 #/2
 nu0 = nu[0] #nu
 nu1 = nu[1] #nu
 
@@ -53,3 +50,7 @@ params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn,
           'resource': base, 'lam':lam, 'nu0':nu0, 'nu1': nu1}
 
 print(static_eq_calc(params_ext), base)
+
+
+#def instantaneous_intertrophic_flux(state, params):
+
