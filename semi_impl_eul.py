@@ -59,7 +59,7 @@ def opt_taup_find_wazzup(y,s_prey,params): #This is the most recent derivation, 
     return x
 
 
-def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_pred = True):
+def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_pred = True, nash = True):
     solution = np.zeros((y0.shape[0], int(t_final / step_size)))
     flux = np.zeros((2,int(t_final / step_size)))
     strat = np.zeros((2,int(t_final / step_size)))
@@ -67,12 +67,16 @@ def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_
     solution[:, 0] = y0
     strat[0,0] = 0.5
     for i in range(1, int(t_final / step_size)):
-        taun_best, taup_best = strat_finder(solution[:,i-1], params, opt_prey = opt_prey, opt_pred = opt_pred, taun_old = strat[0,i-1])
+        if nash is True:
+            taun_best, taup_best = nash_eq_find(solution[:,i-1], params, opt_pred = opt_pred, opt_prey = opt_prey)
+        else:
+            taun_best, taup_best = strat_finder(solution[:,i-1], params, opt_prey = opt_prey, opt_pred = opt_pred, taun_old = strat[0,i-1])
         strat[:, i] = taun_best, taup_best
         t[i] = t[i-1] + step_size
         fwd = f(t[i], solution[:, i - 1], taun_best, taup_best)
-        solution[:, i] = solution[:, i-1] + step_size*fwd[0:3]
-        flux[:, i] = fwd[3:]
+#        print(fwd[0:3].squeeze(), solution[:, i-1], solution[:,i].shape, (solution[:, i-1].reshape(3) + step_size*fwd[0:3]).shape)
+        solution[:, i] = solution[:, i-1] + step_size*fwd[0:3].reshape((3,))
+        flux[:, i] = fwd[3:].reshape((2,))
     return t, solution, flux, strat
 
 

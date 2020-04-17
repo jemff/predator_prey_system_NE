@@ -1,3 +1,5 @@
+from common_functions import *
+
 import numpy as np
 
 def static_eq_calc(params):
@@ -34,7 +36,7 @@ def parameter_calculator_mass(mass_vector):
 
 cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector)
 print(nu, "nu", growth_max)
-base = 50 #3 #*mass_vector[0]**(-0.25) #0.01
+base = 10 #3 #*mass_vector[0]**(-0.25) #0.01
 phi0= cost_of_living[1]/2 #/2#*5
 phi1 = cost_of_living[1]/2 #*2#/2#*5
 eps = 0.7
@@ -49,8 +51,13 @@ nu1 = nu[1] #nu
 params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0':phi0, 'phi1': phi1,
           'resource': base, 'lam':lam, 'nu0':nu0, 'nu1': nu1}
 
-print(static_eq_calc(params_ext), base)
+#print(nash_eq_find(static_eq_calc(params_ext), params_ext))
 
+value = np.array([0.79, 0.5, 0.07])
+def f(x):
+    return opt_taun_analytical(value, opt_taup_find(value, x, params_ext), 10, 0.7, 0.54545454)[0] - x
 
+NE = optm.root(f, x0 = 0.5)
+print(NE.x, opt_taup_find(value, NE.x, params_ext)[0])
 #def instantaneous_intertrophic_flux(state, params):
 

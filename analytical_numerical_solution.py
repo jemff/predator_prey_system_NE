@@ -116,14 +116,15 @@ def opt_taun_find_unstable(y, params, taun_old):
 #    print(val, "val", opt_taup_find(y, val, params))
     return val
 
-def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True):
+def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True, nash = True):
     C = y[0]
     N = y[1]
     P = y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
-
-    taun, taup = strat_finder(y, params, opt_prey = opt_prey, opt_pred = opt_pred)
-
+    if nash is True:
+        taun, taup = nash_eq_find(y, params) #strat_finder(y, params, opt_prey = opt_prey, opt_pred = opt_pred)
+    else:
+        taun, taup = strat_finder(y, params, opt_prey = opt_prey, opt_pred = opt_pred)
     Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+nu0)
     Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp/(taup*taun*N + nu1) - mu1)
     Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1)

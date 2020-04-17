@@ -1,6 +1,30 @@
 import numpy as np
 import scipy.optimize as optm
 
+def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
+    if opt_pred and opt_prey is True:
+        testing_numbers = np.linspace(0.01, 1, 100)
+        valid_responses = opt_taun_analytical(y, testing_numbers, 100, 0.7, 0.545454)
+        if np.min(valid_responses)>1: #fix the magic numbers
+            taun = 1
+            taup = 1 #opt_taup_find(y, taun, params)[0]
+        elif np.max(valid_responses)<0:
+            taun = 0
+            taup = 0
+        else:
+            taun = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, 0.7, 0.54545454)-strat, x0 = np.array([0.5])).x
+            taup = opt_taup_find(y, taun, params)[0]
+
+        if taun>1:
+            taun = 1
+            taup = opt_taup_find(y, taun, params)[0]
+
+    else: #Should add the other two cases.
+        taun = 1
+        taup = 1
+
+    return taun, taup
+
 def opt_taup_find(y, s_prey, params):
     #print(params)
     k = s_prey * y[1] / params['nu1']
@@ -17,7 +41,7 @@ def opt_taup_find(y, s_prey, params):
     else:
         if x[0] > 1:
             x[0] = 1
-            print("Alarm, single!", s_prey)
+            #print("Alarm, single!", s_prey)
     return x
 
 
@@ -48,7 +72,7 @@ def opt_taun_find(y, params, taun_old):
             max_cands = 0.001
         else:
             max_cands = 1
-        print("dong dong")
+      #  print("dong dong")
 
     else:
         maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
@@ -59,7 +83,7 @@ def opt_taun_find(y, params, taun_old):
    # print(np.max(taun_fitness_II(linsp)), taun_fitness_II(max_cands))
     if taun_fitness_II(max_cands)<=taun_fitness_II(alt_max_cand):
         max_cands = alt_max_cand
-        print("Ding dong sling slong")
+        #print("Ding dong sling slong")
     #if taun_fitness_II(max_cands)<0:
         #print(taun_fitness_II(0.001), taun_fitness_II(1), taun_fitness_II(alt_max_cand), taun_fitness_II(max_cands))
     #print(taun_fitness_II(taun_old), taun_fitness_II(max_cands))
