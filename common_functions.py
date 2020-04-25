@@ -2,12 +2,34 @@ import numpy as np
 import scipy.optimize as optm
 
 def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
+    testing_numbers = np.linspace(0.000001, 1, 100)
+    x0 = testing_numbers[np.where((opt_taun_analytical(y, opt_taup_find(y, testing_numbers, params), 100, 0.7, 0.5454545454) - testing_numbers) < 0)]
+    #print(opt_taun_analytical(y, opt_taup_find(y, testing_numbers, params)[0], 100, 0.7, 0.5454545454) - testing_numbers)
+    if len(x0)<1:
+#        print(len(x0), x0)
+        taun, taup = working_nash_eq_find(y, params, opt_prey = True, opt_pred = True)
+    else:
+        x0 = x0[0]
+        optimal_strategy = optm.root_scalar(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, 0.7, 0.54545454)-strat, bracket = [x0-0.02, x0])
+        taun = np.array([optimal_strategy.root])
+        taup = opt_taup_find(y, taun, params)[0]
+        #opt_s[opt_s > 1] = 1
+#    print(taun, taup, opt_taun_analytical(y, opt_taup_find(y, taun, params)[0], 100, 0.7, 0.54545454)-taun, opt_taup_find(y, opt_taun_analytical(y, taup, 100, 0.7, 0.5454545454), params) - taup)
+#    print(opt_taun_analytical(y,opt_s, 100, 0.7, 0.545454545454))
+    if np.isnan(taup):
+        taup = testing_numbers[np.argmax(params['cp'] * params['eps'] * testing_numbers * 1 * y[1] / (y[1] * taup * taun + params['nu1']) - params['phi0'] * testing_numbers ** 2 - params['phi1'])]
+        taun = np.array([1])
+    return taun, taup
+
+
+
+def working_nash_eq_find(y, params, opt_prey = True, opt_pred = True):
     if opt_pred and opt_prey is True:
         testing_numbers = np.linspace(0.01, 1, 100)
         valid_responses = opt_taun_analytical(y, testing_numbers, 100, 0.7, 0.545454)
         if np.min(valid_responses)>1: #fix the magic numbers
-            taun = 1
-            taup = 1 #opt_taup_find(y, taun, params)[0]
+            taun = np.array([1])
+            taup = opt_taup_find(y, taun, params)[0]
         elif np.max(valid_responses)<0:
             taun = 0
             taup = 0
@@ -16,7 +38,44 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
             taup = opt_taup_find(y, taun, params)[0]
 
         if taun>1:
-            taun = 1
+            taun = np.array([1])
+            taup = opt_taup_find(y, taun, params)[0]
+
+    else: #Should add the other two cases.
+        taun = 1
+        taup = 1
+#    print(opt_taup_find(y, 0.5, params))
+    return taun, taup
+
+
+def nash_eq_find_old(y, params, opt_prey = True, opt_pred = True):
+    if opt_pred and opt_prey is True:
+        testing_numbers = np.linspace(0.000001, 1, 100)
+        valid_responses = opt_taun_analytical(y, testing_numbers, 100, 0.7, 0.545454545454)
+        if np.min(valid_responses)>1: #fix the magic numbers
+            #print(valid_responses-testing_numbers)
+            taun = np.array([1])
+            taup = opt_taup_find(y, taun, params)[0]
+            #print("wut", taun, taup, np.min(valid_responses), np.max(valid_responses), y)
+            if np.isnan(taup[0]):
+                taup = np.array([1]) #np.array([1]) #opt_taup_find(y, taun, params)[0]
+        elif np.max(valid_responses)<0:
+            taun = np.array([0])
+            taup = np.array([0])
+        else:
+            #print(valid_responses)
+            taun = optm.root_scalar(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, 0.7, 0.54545454)-strat, method = 'brentq', bracket = [0.000001, 1])
+            #print(taun)
+            taun = taun.root
+
+            taun = np.array([taun])
+            taup = opt_taup_find(y, taun, params)[0]
+            if np.isnan(taup[0]):
+                taup = np.array([0]) #np.array([1]) #opt_taup_find(y, taun, params)[0]
+
+            #print("wut2", taun, taup)
+        if taun>1:
+            taun = np.array([1])
             taup = opt_taup_find(y, taun, params)[0]
 
     else: #Should add the other two cases.
@@ -96,11 +155,11 @@ def static_eq_calc(params):
     mutild = mu0 + mu1
     C_star = phitild*nu1/(eps*cp-phitild)
     gam = nu0-cbar+(cmax/lam)*C_star
-    print(gam, gam**2, 4*cbar*nu0, np.sqrt(gam**2+4*cbar*nu0))
+#    print(gam, gam**2, 4*cbar*nu0, np.sqrt(gam**2+4*cbar*nu0))
     R_star = (-gam + np.sqrt(gam**2+4*cbar*nu0))/2
     P_star = (epsn * C_star*R_star*cmax/(R_star+nu0)-mutild*C_star)/(cp*C_star/(C_star+nu1))
 
-    print(cp*C_star/(C_star+nu1), epsn * C_star*R_star*cmax/(R_star+nu0))
+#    print(cp*C_star/(C_star+nu1), epsn * C_star*R_star*cmax/(R_star+nu0))
     if P_star<0 or C_star<0:
         R_star = nu0*mutild/(epsn*cmax+mutild)
         C_star = lam*(cbar-R_star)*(R_star+nu0)/(cmax*R_star)
@@ -236,5 +295,12 @@ def opt_taun_analytical(y, taup, s, eps, gamma):
     eta = (taup*P*s**(3/4)*(eps*R)**(-1))**(1/2)
 
     tauc = gamma*(1-eta)/(R*eta-C*taup)
+
+#    tauc = np.array([tauc])
+#    if len(tauc.shape)>1:
+#        tauc = np.squeeze(tauc)
+
+#    tauc[tauc>1] = 1
+#    tauc[tauc<0] = 0.000001
 
     return tauc

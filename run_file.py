@@ -12,12 +12,12 @@ plt.rc('font', family='serif')
 mass_vector = np.array([1, 1, 100])
 
 its = 0
-step_size = 0.5
-one_dim_its = 15
+step_size = 0.5 #0.5
+total_range = 20 #18
+one_dim_its = int(total_range/step_size)
 
 cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector)
-base = 16
-cbar = base
+base = 15
 phi1 = cost_of_living[1] #/3 #*2#/2#*5
 phi0 = cost_of_living[1]
 eps = 0.7
@@ -33,9 +33,8 @@ params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn,
           'resource': base, 'lam':lam, 'nu0':nu0, 'nu1': nu1}
 
 
-t_end = 15
-
-init = np.array([0.5383403,  0.23503815, 0.00726976]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
+t_end = 5
+init = static_eq_calc(params_ext) #np.array([0.5383403,  0.23503815, 0.00726976]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
 tim, sol, flux, strat = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
 num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=True)
 tim, sol_2, flux_2, strat_2 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
@@ -47,7 +46,6 @@ num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, season
 #tim, sol_4, flux_4, strat_4 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
 #num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=True)
 
-print(sol_2)
 #C, N, P =  C, N, P = sol[:,-1]
 
 #print(C, N, P, "CNP1", strat_finder(sol[:,-1], params_ext))
@@ -100,7 +98,7 @@ plt.legend(loc = 'lower left')
 
 plt.savefig("Indsvingning.png")
 
-print(sol_2)
+#print(sol_2)
 plt.figure()
 
 plt.plot(tim[1:], strat[0,1:], 'x', label = "Prey foraging intensity",alpha=0.5)
@@ -110,7 +108,7 @@ plt.ylabel("Intensity")
 plt.legend(loc = 'center left')
 plt.savefig("Indsvingning_strat.png")
 
-print(strat[0,1:])
+#print(strat[0,1:])
 
 #plt.figure()
 #plt.plot(tim, sol_3[1,:], label = 'Dynamic prey biomass', color = 'Green')
@@ -145,10 +143,11 @@ optimal_pred = np.zeros((one_dim_its, 3))
 optimal_prey_stack = np.copy(optimal_prey)
 optimal_pred_stack = np.copy(optimal_pred)
 
+base = 30
+params_ext['resource'] = base
+#print(an_sol.optimal_behavior_trajectories(np.array([0.27757345235331043, 0.29627977517967535, 0.1416850251665414 ]), params_ext))
 
-print(an_sol.optimal_behavior_trajectories(np.array([0.27757345235331043, 0.29627977517967535, 0.1416850251665414 ]), params_ext))
-
-sol_3 = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x0 = np.array([0.27757345235331043, 0.29627977517967535, 0.1416850251665414 ]), method = 'hybr')
+sol_3 = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x0 = np.array([0.9500123,  0.4147732,  0.01282899 ]), method = 'hybr')
 sol_static = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False), x0 = np.array([2/3*base, 1.5, 1.5]), method = 'hybr')
 
 h = 0.00005
@@ -157,9 +156,11 @@ print(sol_3.message, sol_3.x, "Sol 3")
 print(sol_static.x)
 print(np.linalg.eig(jac_3)[0], "Jac3")
 
-base = 30
 
-list_of_cbars = np.linspace(30-one_dim_its, 30, one_dim_its)
+
+
+list_of_cbars = np.linspace(base-total_range, base, one_dim_its)
+#print(list_of_cbars)
 parms_list = [params_ext]*one_dim_its
 equilibria = np.zeros((one_dim_its, 3))
 eigen_values = np.zeros((one_dim_its, 4))
@@ -173,7 +174,7 @@ x_ext_stack = np.copy(x_ext)
 
 for i in range(one_dim_its):
 #    print(base, step_size, "Base, Stepsize")
-    params_ext['resource'] = base - i #- step_size * i
+    params_ext['resource'] = base - i*step_size #- step_size * i
     #parms_list[i]['resource'] = list_of_cbars[i]
     equilibria[i] = static_eq_calc(params_ext)
 #    print(params_ext['resource'], "Resourcemax", i, base)
@@ -183,7 +184,7 @@ for i in range(one_dim_its):
     x_ext = sol_temp.x
     sol_temp_stackelberg = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, nash = False), x0=x_ext_stack, method='hybr')
     x_ext_stack = sol_temp_stackelberg.x
- #   print(sol_temp.message, an_sol.optimal_behavior_trajectories(x_ext, params_ext), x_ext)
+    print(sol_temp.message, base - i*step_size)
 
 
 
@@ -197,7 +198,7 @@ for i in range(one_dim_its):
     optimal_strategies_stack[i,1] = tp_s
     dynamic_equilibria_stack[i] = x_ext_stack
 
-    print(tc, tp)
+    print(tc, tp, i)
 #    optimal_prey[i] = x_prey
 #    optimal_pred[i] = x_pred
     flows[i,0:3] = an_sol.flux_calculator(x_ext[0], x_ext[1], x_ext[2], tc, tp, params_ext).reshape((3,))
@@ -238,17 +239,21 @@ opponent_strats = np.linspace(0.01,1,100)
 #plt.figure()
 #plt.plot(opponent_strats,test_func(opponent_strats))
 #plt.show()
-
+print(epsn, params_ext['nu0'], mass_vector[2])
+#taun_data = opt_taun_analytical(sol[-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0'])
 taun_data = opt_taun_analytical(dynamic_equilibria[-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0'])
 
 taun_data[taun_data > 1] = 1
+taun_data[taun_data < 0] = 0
 plt.figure()
-plt.plot(opponent_strats, taun_data)
-plt.plot(opponent_strats, opt_taup_find(dynamic_equilibria[-1], opponent_strats, params_ext))
-plt.xlabel("$tau_1$")
-plt.ylabel("$tau_0$")
-plt.title("Strategies for R, C, P:") #, np.round(dynamic_equilibria[-1], 2))
-plt.legend(loc = 'central left')
+plt.plot(opponent_strats, taun_data, label = "Best response of consumer")
+plt.plot(opponent_strats, opt_taup_find(dynamic_equilibria[-1], opponent_strats, params_ext), label = 'Best response of predator')
+#plt.plot(opponent_strats, opt_taup_find(sol[-1], opponent_strats, params_ext), label = 'Best response of predator')
+
+plt.xlabel("$\\tau_0$")
+plt.ylabel("$\\tau_1$")
+plt.title("Strategies for R, C, P: " + str(np.round(dynamic_equilibria[-1,0], 2)) + str(np.round(dynamic_equilibria[-1,1], 2)) + str(np.round(dynamic_equilibria[-1,2], 2)) ) #, np.round(dynamic_equilibria[-1], 2))
+plt.legend(loc = 'center left')
 plt.savefig('Strategy_Intersection.png')
 
 equilibria = np.log(equilibria)
@@ -295,22 +300,22 @@ plt.savefig('Bifurcation_plot_dynamic.png')
 
 plt.figure()
 plt.plot(list_of_cbars, np.exp(eigen_values[:,0]), label = 'Static model')
-plt.plot(list_of_cbars, np.exp(eigen_values[:,1]), label = 'Doubly dynamic')
+plt.plot(list_of_cbars, np.exp(eigen_values[:,1]), label = 'Nash model')
 #plt.plot(list_of_cbars, np.exp(eigen_values[:,2]), label = 'Dynamic prey')
 #plt.plot(list_of_cbars, np.exp(eigen_values[:,3]), label ='Dynamic predator')
-plt.xlabel('Exp of dominating eigenvalue')
-plt.ylabel("Resource in $m_p/m^3$")
+plt.ylabel('Exp of dominating eigenvalue')
+plt.xlabel("Resource in $m_p/m^3$")
 plt.legend(loc ='upper left')
 plt.savefig("Eigenvalues_compare.png")
 
 plt.figure()
-plt.plot(list_of_cbars, flows[:,0]/flows[:,3], label = 'Difference in flow from 0 to 1, Dynamic/Static')
-plt.plot(list_of_cbars, flows[:,1]/flows[:,4], label = 'Difference in flow from 1 to 2, Dynamic/Static')
-plt.plot(list_of_cbars, flows[:,2]/flows[:,5], label = 'Difference in flow from 2 to n, Dynamic/Static')
+plt.plot(list_of_cbars, flows[:,0]/flows[:,3], label = 'Ratio of flow from 0 to 1, Nash/Static')
+plt.plot(list_of_cbars, flows[:,1]/flows[:,4], label = 'Ratio of flow from 1 to 2, Nash/Static')
+plt.plot(list_of_cbars, flows[:,2]/flows[:,5], label = 'Ratio of flow from 2 to n, Nash/Static')
 
 plt.xlabel("Resource in $m_p/m^3$")
-plt.ylabel("$m_p/(m^3 day)$")
-plt.legend(loc = 'upper left')
+plt.ylabel("$m_p/(m^3 \cdot day)$")
+plt.legend(loc = 'center left')
 
 
 plt.savefig("Flows_Compare.png")
@@ -324,7 +329,7 @@ plt.plot(list_of_cbars, optimal_strategies_stack[:,0], label = 'Stackelberg Cons
 plt.plot(list_of_cbars, optimal_strategies_stack[:,1], label = 'Stackelberg Predator')
 
 plt.ylabel("Activity level")
-plt.xlabel("$m_p/(day m^3)$")
+plt.xlabel("$m_p/(day \cdot m^3)$")
 plt.legend(loc = 'upper right')
 
 plt.savefig("Strategies.png")
@@ -333,8 +338,9 @@ plt.savefig("Strategies.png")
 #print(opt_taup_find(np.exp(dynamic_equilibria[-1]), np.linspace(0,1,100), params_ext))
 
 
-print(nash_eq_find(np.exp(dynamic_equilibria[-1]), params_ext), "Nash Eq")
-taunx, taupx = nash_eq_find(np.exp(dynamic_equilibria[-1]), params_ext)
+#sol = np.log(sol)
+#print(nash_eq_find(np.exp(dynamic_equilibria[-1]), params_ext), "Nash Eq")
+#taunx, taupx = nash_eq_find(np.exp(sol[-1]), params_ext)
 
-print(opt_taup_find(np.exp(dynamic_equilibria[-1]),opt_taun_analytical(np.exp(dynamic_equilibria[-1]),taupx, 100, 0.7, 0.5454545454),
-                    params_ext))
+#print(opt_taup_find(np.exp(dynamic_equilibria[-1]),opt_taun_analytical(np.exp(dynamic_equilibria[-1]),taupx, 100, 0.7, 0.5454545454),
+#                    params_ext))
