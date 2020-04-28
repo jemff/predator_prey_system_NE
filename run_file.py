@@ -4,6 +4,8 @@ import analytical_numerical_solution as an_sol
 import semi_impl_eul as num_sol
 import matplotlib.pyplot as plt
 
+configuration = {'verbose' : False, 'quadratic' : True, 'metabolic_cost' : False}
+
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -13,11 +15,11 @@ mass_vector = np.array([1, 1, 100])
 
 its = 0
 step_size = 0.5 #0.5
-total_range = 20 #18
+total_range = 18
 one_dim_its = int(total_range/step_size)
 
-cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector)
-base = 15
+cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector, v = 0.1)
+base = 16
 phi1 = cost_of_living[1] #/3 #*2#/2#*5
 phi0 = cost_of_living[1]
 eps = 0.7
@@ -34,13 +36,39 @@ params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn,
 
 
 t_end = 5
-init = static_eq_calc(params_ext) #np.array([0.5383403,  0.23503815, 0.00726976]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
+init = 2*static_eq_calc(params_ext) #np.array([0.5383403,  0.23503815, 0.00726976]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
 tim, sol, flux, strat = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
 num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=True)
 tim, sol_2, flux_2, strat_2 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
 num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=False)
 
+fidelity = 100
+resource_variation = np.linspace(sol[0,-1]*0.01, sol[0,-1], fidelity)
+prey_variation = np.linspace(sol[1,-1]*0.01, sol[1,-1], fidelity)
+frp = np.zeros((fidelity,2))
+frc = np.zeros((fidelity,2))
+for i in range(fidelity):
+    frp[i] = nash_eq_find(np.array([sol[0,-1], prey_variation[i], sol[2,-1]]), params_ext)
+    frc[i] = nash_eq_find(np.array([resource_variation[i], sol[1,-1], sol[2,-1]]), params_ext)
 
+
+plt.figure()
+plt.title("Functional response of predator, P " + str(np.round(sol[2,-1], 2)) + " R " + str(np.round(sol[0, -1],2)))
+plt.plot(prey_variation, params_ext['cp']*prey_variation/(prey_variation+params_ext['nu0']), 'x', label = "Predator functional response, non-optimal",alpha=0.5)
+plt.plot(prey_variation, params_ext['cp']*frp[:,0]*frp[:,1]*prey_variation/(frp[:,0]*frp[:,1]*prey_variation+params_ext['nu0']), 'x', label = "Predator functional response, optimal",alpha=0.5)
+plt.xlabel("Prey")
+plt.ylabel("Functional response")
+plt.legend(loc = 'center left')
+plt.savefig("Functional_response_predator.png")
+
+plt.figure()
+plt.title("Functional response of consumer, C " + str(np.round(sol[1,-1], 2)) + " P " + str(np.round(sol[2, -1],2)))
+plt.plot(resource_variation, params_ext['cmax']*resource_variation/(resource_variation+params_ext['nu0']), 'x', label = "Consumer functional response, non-optimal",alpha=0.5)
+plt.plot(resource_variation, params_ext['cmax']*frc[:,0]*resource_variation/(frc[:,0]*resource_variation+params_ext['nu0']), 'x', label = "Consumer functional response, optimal",alpha=0.5)
+plt.xlabel("Resource")
+plt.ylabel("Functional response consumer")
+plt.legend(loc='center left')
+plt.savefig("Functional_response_consumer.png")
 #tim, sol_3, flux_3, strat_3 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
 #num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=False)
 #tim, sol_4, flux_4, strat_4 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
@@ -148,12 +176,13 @@ params_ext['resource'] = base
 #print(an_sol.optimal_behavior_trajectories(np.array([0.27757345235331043, 0.29627977517967535, 0.1416850251665414 ]), params_ext))
 
 sol_3 = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x0 = np.array([0.9500123,  0.4147732,  0.01282899 ]), method = 'hybr')
-sol_static = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False), x0 = np.array([2/3*base, 1.5, 1.5]), method = 'hybr')
+print("Does it work here?")
+#sol_static = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, opt_pred = False, opt_prey = False), x0 = np.array([2/3*base, 1.5, 1.5]), method = 'hybr')
 
 h = 0.00005
 jac_3 = jacobian_calculator(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), sol_3.x, h)
 print(sol_3.message, sol_3.x, "Sol 3")
-print(sol_static.x)
+#print(sol_static.x)
 print(np.linalg.eig(jac_3)[0], "Jac3")
 
 
@@ -182,23 +211,23 @@ for i in range(one_dim_its):
  #   print(x_ext, params_ext['resource'])
     sol_temp = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x0=x_ext, method='hybr')
     x_ext = sol_temp.x
-    sol_temp_stackelberg = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, nash = False), x0=x_ext_stack, method='hybr')
-    x_ext_stack = sol_temp_stackelberg.x
+#    sol_temp_stackelberg = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, nash = False), x0=x_ext_stack, method='hybr')
+#    x_ext_stack = sol_temp_stackelberg.x
     print(sol_temp.message, base - i*step_size)
 
 
 
     tc, tp = nash_eq_find(x_ext, params_ext) #strat_finder(x_ext, params_ext)
+    print(tp)
     optimal_strategies[i,0] = tc[0]
     optimal_strategies[i,1] = tp[0]
     dynamic_equilibria[i] = x_ext
 
-    tc_s, tp_s = strat_finder(x_ext_stack, params_ext)
-    optimal_strategies_stack[i,0] = tc_s
-    optimal_strategies_stack[i,1] = tp_s
-    dynamic_equilibria_stack[i] = x_ext_stack
+#    tc_s, tp_s = strat_finder(x_ext_stack, params_ext)
+#   optimal_strategies_stack[i,0] = tc_s
+#  optimal_strategies_stack[i,1] = tp_s
+#  dynamic_equilibria_stack[i] = x_ext_stack
 
-    print(tc, tp, i)
 #    optimal_prey[i] = x_prey
 #    optimal_pred[i] = x_pred
     flows[i,0:3] = an_sol.flux_calculator(x_ext[0], x_ext[1], x_ext[2], tc, tp, params_ext).reshape((3,))
@@ -219,7 +248,6 @@ for i in range(one_dim_its):
     eigen_values[i, 1] = max(np.linalg.eig(jac1)[0])
 #    eigen_values[i, 2] = max(np.linalg.eig(jac2)[0])
 #    eigen_values[i, 3] = max(np.linalg.eig(jac3)[0])
-
 
 equilibria = equilibria[::-1]
 dynamic_equilibria = dynamic_equilibria[::-1]
@@ -275,8 +303,8 @@ plt.plot(list_of_cbars, equilibria[:,2], label = 'Static predator')
 plt.plot(list_of_cbars, dynamic_equilibria[:, 1], label = 'Nash consumer')
 plt.plot(list_of_cbars, dynamic_equilibria[:, 2], label = 'Nash predator')
 
-plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 1], label = 'Stackelberg consumer')
-plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 2], label = 'Stackelberg predator')
+#plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 1], label = 'Stackelberg consumer')
+#plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 2], label = 'Stackelberg predator')
 
 plt.xlabel('Nutrient biomass in $m_p/m^3$')
 plt.ylabel('Log biomass in $m_p/m^3$')
@@ -325,8 +353,8 @@ plt.figure()
 plt.plot(list_of_cbars, optimal_strategies[:,0], label = 'Nash Consumer')
 plt.plot(list_of_cbars, optimal_strategies[:,1], label = 'Nash Predator')
 
-plt.plot(list_of_cbars, optimal_strategies_stack[:,0], label = 'Stackelberg Consumer')
-plt.plot(list_of_cbars, optimal_strategies_stack[:,1], label = 'Stackelberg Predator')
+#plt.plot(list_of_cbars, optimal_strategies_stack[:,0], label = 'Stackelberg Consumer')
+#plt.plot(list_of_cbars, optimal_strategies_stack[:,1], label = 'Stackelberg Predator')
 
 plt.ylabel("Activity level")
 plt.xlabel("$m_p/(day \cdot m^3)$")
@@ -344,3 +372,5 @@ plt.savefig("Strategies.png")
 
 #print(opt_taup_find(np.exp(dynamic_equilibria[-1]),opt_taun_analytical(np.exp(dynamic_equilibria[-1]),taupx, 100, 0.7, 0.5454545454),
 #                    params_ext))
+
+

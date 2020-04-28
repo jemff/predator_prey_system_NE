@@ -1,24 +1,182 @@
 import numpy as np
 import scipy.optimize as optm
 
+def opt_taun_linear(y, taup, params, v = 0.1, s=100, eps = 0.14, nu = 0.545454545):
+    R, C, P = y[0], y[1], y[2]
+
+
+    k_1 = 1/v*eps*nu*R
+    k_2 = C*taup
+    k_3 = nu
+    k_4 = 1/v*s**(3/4)*taup*nu
+    k_5 = R
+
+    # The problem can be rewritten as
+    #-k_2^2 k_5^2 x^4 - 2 k_2 k_3 k_5^2 x^3 - 2 k_2^2 k_3 k_5 x^3 + k_1 k_2^2 x^2 - k_2^2 k_3^2 x^2
+    # - k_3^2 k_5^2 x^2 - k_4 k_5^2 x^2 - 4 k_2 k_3^2 k_5 x^2 - 2 k_2 k_3^3 x + 2 k_1 k_2 k_3 x - 2 k_3^3 k_5 x
+    # - 2 k_3 k_4 k_5 x - k_3^4 + k_1 k_3^2 - k_3^2 k_4
+
+    c1 = -k_2**2*k_5
+    c2 = -( 2*k_2*k_3*(k_5)**2+2*(k_2)**2*k_3*k_5)
+    c3 = k_1*k_2**2 - k_2**2*k_3**2 - k_3**2*k_5**2 - k_4*k_5 - 4*k_2*k_3**2*k_5
+    c4 =-2*k_2*k_3**3+2*k_1*k_2*k_3 - 2*k_3**3*k_5 - 2*k_3*k_4*k_5
+    c5 = -k_3**4 + k_1*k_3**2 - k_3**2*k_4
+    print(np.sqrt((2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3))
+    solution_1 = \
+    -c2 / (4 * c1) - 1 / 2 * np.sqrt(c2 ** 2 / (4 * c1 ** 2) - (2 * c3) / (3 * c1) + (
+                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+            (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) + (
+                                                 2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+            (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3))) - 1 / 2 * np.sqrt(
+        c2 ** 2 / (2 * c1 ** 2) - (4 * c3) / (3 * c1) - (
+                    2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                (
+                            2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                            c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) - (
+                    2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                    2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                (
+                            2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                            c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3)) - (
+                    -c2 ** 3 / c1 ** 3 + (4 * c3 * c2) / c1 ** 2 - (8 * c4) / c1) / (4 * np.sqrt(
+            c2 ** 2 / (4 * c1 ** 2) - (2 * c3) / (3 * c1) + (
+                        2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                    (
+                                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                                c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) + (
+                        2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                        2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                    (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                                c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3)))))
+
+    solution_2 = -c2 / (4 * c1) - 1 / 2 * np.sqrt(c2 ** 2 / (4 * c1 ** 2) - (2 * c3) / (3 * c1) + (
+                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+            (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) + (
+                                                 2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+            (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3))) + 1 / 2 * np.sqrt(
+        c2 ** 2 / (2 * c1 ** 2) - (4 * c3) / (3 * c1) - (
+                    2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                (
+                            2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                            c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) - (
+                    2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                    2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                (
+                            2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                            c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3)) - (
+                    -c2 ** 3 / c1 ** 3 + (4 * c3 * c2) / c1 ** 2 - (8 * c4) / c1) / (4 * np.sqrt(
+            c2 ** 2 / (4 * c1 ** 2) - (2 * c3) / (3 * c1) + (
+                        2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                    (
+                                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                                c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) + (
+                        2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                        2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                    (
+                                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                                c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3)))))
+
+    solution_3 = -c2 / (4 * c1) + 1 / 2 * np.sqrt(c2 ** 2 / (4 * c1 ** 2) - (2 * c3) / (3 * c1) + (
+                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+            (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) + (
+                                                 2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+            (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3))) - 1 / 2 * np.sqrt(
+        c2 ** 2 / (2 * c1 ** 2) - (4 * c3) / (3 * c1) - (
+                    2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                            c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) - (
+                    2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                    2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                (
+                            2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                            c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3)) - (
+                    + c2 ** 3 / c1 ** 3 + (4 * c3 * c2) / c1 ** 2 - (8 * c4) / c1) / (4 * np.sqrt(
+            c2 ** 2 / (4 * c1 ** 2) - (2 * c3) / (3 * c1) + (
+                        2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                    (
+                                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                                c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) + (
+                        2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                        2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                    (
+                                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                                c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3)))))
+    solution_4 = -c2 / (4 * c1) + 1 / 2 * np.sqrt(c2 ** 2 / (4 * c1 ** 2) - (2 * c3) / (3 * c1) + (
+                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+            (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) + (
+                                                 2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+            (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                        c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3))) + 1 / 2 * np.sqrt(
+        c2 ** 2 / (2 * c1 ** 2) - (4 * c3) / (3 * c1) - (
+                    2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                (2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                            c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) - (
+                    2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                    2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                (
+                            2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                            c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3)) - (
+                    + c2 ** 3 / c1 ** 3 + (4 * c3 * c2) / c1 ** 2 - (8 * c4) / c1) / (4 * np.sqrt(
+            c2 ** 2 / (4 * c1 ** 2) - (2 * c3) / (3 * c1) + (
+                        2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                    (
+                                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                                c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3) / (3 * 2 ** (1 / 3) * c1) + (
+                        2 ** (1 / 3) * (c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5)) / (3 * c1 * (
+                        2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5 + np.sqrt(
+                    (
+                                2 * c3 ** 3 - 9 * c2 * c4 * c3 - 72 * c1 * c5 * c3 + 27 * c1 * c4 ** 2 + 27 * c2 ** 2 * c5) ** 2 - 4 * (
+                                c3 ** 2 - 3 * c2 * c4 + 12 * c1 * c5) ** 3)) ** (1 / 3)))))
+
+
+    print(taun_fitness_II_linear(solution_1,taup, params, R, C, P) , taun_fitness_II_linear(solution_1,taup, params, R, C, P) , taun_fitness_II_linear(solution_1,taup, params, R, C, P) , taun_fitness_II_linear(solution_1,taup, params, R, C, P))
+
+    solution_1[solution_1 < 0] = 0
+    solution_1[solution_1 > 1] = 1
+    solution_2[solution_2 < 0] = 0
+    solution_2[solution_2 > 1] = 1
+    solution_3[solution_3 < 0] = 0
+    solution_4[solution_4 > 1] =1
+    return solution_3
+
+
+
 def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
-    testing_numbers = np.linspace(0.000001, 1, 100)
-    x0 = testing_numbers[np.where((opt_taun_analytical(y, opt_taup_find(y, testing_numbers, params), 100, 0.7, 0.5454545454) - testing_numbers) < 0)]
-    #print(opt_taun_analytical(y, opt_taup_find(y, testing_numbers, params)[0], 100, 0.7, 0.5454545454) - testing_numbers)
-    if len(x0)<1:
-#        print(len(x0), x0)
-        taun, taup = working_nash_eq_find(y, params, opt_prey = True, opt_pred = True)
+
+    if opt_pred is True and opt_prey is True:
+        testing_numbers = np.linspace(0.000001, 1, 100)
+        x0 = testing_numbers[(opt_taun_analytical(y, opt_taup_find(y, testing_numbers, params), 100, params['eps'], params['nu0']) - testing_numbers) < 0]
+        if len(x0)<1:
+    #        print(len(x0), x0)
+            taun, taup = working_nash_eq_find(y, params, opt_prey = True, opt_pred = True)
+        else:
+            x0 = x0[0]
+#            print(x0)
+            optimal_strategy = optm.root_scalar(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'])-strat, bracket = [0.000001, x0])
+            taun = np.array([optimal_strategy.root])
+            taup = opt_taup_find(y, taun, params)
+        if np.isnan(taup):
+            testing_numbers = np.linspace(0.000001, 1, 1000)
+            optimal_coordinate = np.argmax(params['cp'] * params['eps'] * testing_numbers * 1 * y[1] / (y[1] * testing_numbers * 1 + params['nu1']) - params['phi0'] * testing_numbers ** 2 - params['phi1'])
+            taup = testing_numbers[optimal_coordinate]
+            taun = np.array([1])
+            #print(np.max(params['cp'] * params['eps'] * testing_numbers * 1 * y[1] / (y[1] * taup * taun + params['nu1']) - params['phi0'] * testing_numbers ** 2 - params['phi1']), "This is it?",
+            #      testing_numbers[optimal_coordinate], params['cp'] * params['eps'] * 1 * 1 * y[1] / (y[1] * taup * taun + params['nu1']) - params['phi0'] * 1 ** 2 - params['phi1'], optimal_coordinate)
     else:
-        x0 = x0[0]
-        optimal_strategy = optm.root_scalar(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, 0.7, 0.54545454)-strat, bracket = [x0-0.02, x0])
-        taun = np.array([optimal_strategy.root])
-        taup = opt_taup_find(y, taun, params)[0]
-        #opt_s[opt_s > 1] = 1
-#    print(taun, taup, opt_taun_analytical(y, opt_taup_find(y, taun, params)[0], 100, 0.7, 0.54545454)-taun, opt_taup_find(y, opt_taun_analytical(y, taup, 100, 0.7, 0.5454545454), params) - taup)
-#    print(opt_taun_analytical(y,opt_s, 100, 0.7, 0.545454545454))
-    if np.isnan(taup):
-        taup = testing_numbers[np.argmax(params['cp'] * params['eps'] * testing_numbers * 1 * y[1] / (y[1] * taup * taun + params['nu1']) - params['phi0'] * testing_numbers ** 2 - params['phi1'])]
         taun = np.array([1])
+        taup = np.array([1])
     return taun, taup
 
 
@@ -26,17 +184,17 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
 def working_nash_eq_find(y, params, opt_prey = True, opt_pred = True):
     if opt_pred and opt_prey is True:
         testing_numbers = np.linspace(0.01, 1, 100)
-        valid_responses = opt_taun_analytical(y, testing_numbers, 100, 0.7, 0.545454)
+        valid_responses = opt_taun_analytical(y, testing_numbers, 100, params['eps'], params['nu0'])
         if np.min(valid_responses)>1: #fix the magic numbers
             taun = np.array([1])
             taup = opt_taup_find(y, taun, params)[0]
         elif np.max(valid_responses)<0:
             taun = 0
             taup = 0
-        else:
-            taun = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, 0.7, 0.54545454)-strat, x0 = np.array([0.5])).x
-            taup = opt_taup_find(y, taun, params)[0]
 
+        else:
+            taun = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'])-strat, x0 = np.array([0.5])).x
+            taup = opt_taup_find(y, taun, params)[0]
         if taun>1:
             taun = np.array([1])
             taup = opt_taup_find(y, taun, params)[0]
@@ -51,7 +209,7 @@ def working_nash_eq_find(y, params, opt_prey = True, opt_pred = True):
 def nash_eq_find_old(y, params, opt_prey = True, opt_pred = True):
     if opt_pred and opt_prey is True:
         testing_numbers = np.linspace(0.000001, 1, 100)
-        valid_responses = opt_taun_analytical(y, testing_numbers, 100, 0.7, 0.545454545454)
+        valid_responses = opt_taun_analytical(y, testing_numbers, 100, params['eps'], params['nu0'])
         if np.min(valid_responses)>1: #fix the magic numbers
             #print(valid_responses-testing_numbers)
             taun = np.array([1])
@@ -63,8 +221,8 @@ def nash_eq_find_old(y, params, opt_prey = True, opt_pred = True):
             taun = np.array([0])
             taup = np.array([0])
         else:
-            #print(valid_responses)
-            taun = optm.root_scalar(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, 0.7, 0.54545454)-strat, method = 'brentq', bracket = [0.000001, 1])
+            print(valid_responses)
+            taun = optm.root_scalar(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'])-strat, method = 'brentq', bracket = [0.000001, 1])
             #print(taun)
             taun = taun.root
 
@@ -100,7 +258,7 @@ def opt_taup_find(y, s_prey, params):
     else:
         if x[0] > 1:
             x[0] = 1
-            #print("Alarm, single!", s_prey)
+    x[x<0] = 0
     return x
 
 
@@ -172,7 +330,7 @@ def static_eq_calc(params):
 
 
 
-def parameter_calculator_mass(mass_vector, alpha = 15, b = 330/12, v = 0.1):
+def parameter_calculator_mass(mass_vector, alpha = 15, b = 330/12, v = 0.05):
     #alpha = 15
     #b = 330/12
     #v = 0.1 #/12
@@ -187,6 +345,10 @@ def parameter_calculator_mass(mass_vector, alpha = 15, b = 330/12, v = 0.1):
     #print(ci)
     return ci, nu, maximum_consumption_rate, r0
 
+
+def taun_fitness_II_linear(s_prey, s_pred, params, R, C, P):
+    return params['epsn'] * params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['cp'] * s_pred * s_prey * P / (
+                s_pred * s_prey * C + params['nu1']) - params['mu1']
 
 def taun_fitness_II(s_prey, params, R, C, P):
     y = np.array([R, C, P])
@@ -239,32 +401,21 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
 
 
 
-def opt_taup_find_linear(y, taun, params):
+def opt_taup_find_linear(y, taun, params): #THIS IS THE LIENAR VERSION !!!!!!!!!!!!!!!!!!!!!!!
     N = y[1]
-    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
-    if taun is 0:
-        return 0
-    else:
-        res1 = cp * (np.sqrt(eps / (phi0 * taun * N)) - 1 / (N * taun))
-        res2 = -res1
 
-        res1 = max(min(res1, 1),0)
-        res2 = max(min(res2, 1),0)
+    taun = np.array([taun])
+    if taun.shape == (1,1):
+        taun = taun[0]
+    elif np.sum(taun.shape) > 2:
+        taun = np.squeeze(taun)
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
+    res = (np.sqrt(cp*nu0*eps / (phi0 * taun * N)) - nu0 / (N * taun))
 
-        r1 = cp * eps * res1 * taun * N / (N * res1 * taun + cp) - phi0 * res1 - phi1
-        r2 = cp * eps * res2 * taun * N / (N * res2 * taun + cp) - phi0 * res2 - phi1
+    res[res>1] = 1
+    res[res<0] = 0
 
-#        print(r1, "r1", r2, "r2", res1, res2,  cp * eps * 1 * taun * N / (N * 1 * taun + cp) - phi0 * 1 - phi1, -phi1)
-#        res = res1
-#        res[r2>r1] = res[r2 > r1]
-        if r1 > r2:
-            res = res1
-        else:
-            res = res2
-#            print("Ding ding")
-#        res = res2
-#        print(res, taun)
-        return res
+    return res
 
 def num_derr(f, x, h):
     x_m = float(np.copy(x))
@@ -296,11 +447,11 @@ def opt_taun_analytical(y, taup, s, eps, gamma):
 
     tauc = gamma*(1-eta)/(R*eta-C*taup)
 
-#    tauc = np.array([tauc])
-#    if len(tauc.shape)>1:
-#        tauc = np.squeeze(tauc)
+    tauc = np.array([tauc])
+    if len(tauc.shape)>1:
+        tauc = np.squeeze(tauc)
 
-#    tauc[tauc>1] = 1
-#    tauc[tauc<0] = 0.000001
+    tauc[tauc>1] = 1
+    tauc[tauc<0] = 0.000001
 
     return tauc

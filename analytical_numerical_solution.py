@@ -126,8 +126,8 @@ def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True, n
     else:
         taun, taup = strat_finder(y, params, opt_prey = opt_prey, opt_pred = opt_pred)
     Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+nu0)
-    Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp/(taup*taun*N + nu1) - mu1)
-    Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1)
+    Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp/(taup*taun*N + nu1) - - mu0*taun**2 - mu1)
+    Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1) #Square cost removed
 #    print(taun, taup, cbar, Ndot)
 #    print(Cdot, Ndot, Pdot,epsn*cmax*taun*C/(taun*C+cmax) - taup * taun*P*cp*1/(taup*taun*N + cp) - mu0*taun - mu1)
 
@@ -177,7 +177,7 @@ def flux_calculator(R, C, P, taun, taup, params):
 
     flux_01 = params['cmax']*C * taun * R / (taun * R + params['nu0'])
     flux_12 = C * taup * taun * P * params['cp']* 1 / (taup * taun * C + params['nu1'])
-    flux_2n = P*params['phi0'] * taup ** 2
+    flux_2n = P*params['phi0'] * taup** 2
 
     return np.array([flux_01, flux_12, flux_2n])
 
