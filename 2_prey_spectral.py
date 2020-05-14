@@ -2,13 +2,7 @@ import matlab.engine
 import numpy as np
 import scipy.special as scp
 import itertools
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from scipy.integrate import solve_ivp
-import copy as copy
-from scipy.linalg import block_diag
 eng = matlab.engine.start_matlab()
-from scipy.optimize import minimize
 
 JacobiGL = lambda x, y, z: eng.JacobiGL(float(x), float(y), float(z), nargout=1)
 JacobiGQ = lambda x, y, z: eng.JacobiGQ(float(x), float(y), float(z), nargout=2)

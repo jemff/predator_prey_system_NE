@@ -4,210 +4,261 @@ from scipy import optimize as optm
 from multiprocessing import Pool
 
 
+
+def num_derr(f, x, h):
+    x_m = float(np.copy(x))
+    x_p = float(np.copy(x))
+    x_m -= h
+    x_p += h
+    derr = (f(x_p) - f(x_m))/(2*h)
+#    print(derr)
+    return derr
+
+def jacobian_calculator(f, x, h):
+    jac = np.zeros((x.shape[0], x.shape[0]))
+    x_m = np.copy(x)
+    x_p = np.copy(x)
+    for i in range(len((x))):
+        x_m[i] -= h
+        x_p[i] += h
+        jac[:, i] = (f(x_p) - f(x_m)) / (2 * h)
+        x_m = np.copy(x)
+        x_p = np.copy(x)
+
+    return jac
+
+
 class PredatorPrey:
-    def __init__(self, params, iterations, h, timestep, step_size, opt_prey = True, opt_pred = True):
-        self.params = params
-        self.iterations = iterations
-        self.h = h
-        self.timestep = timestep
+    def __init__(self, mass_vector, base, ivp, opt_prey = True, opt_pred = True, nash = True, metabolism = True):
+        cost_of_living, nu, growth_max, lam = self.parameter_calculator_mass(mass_vector, v=0.1)
+        base = base
+        phi1 = cost_of_living[1]  # *2/3 #/3 #*2#/2#*5
+        phi0 = cost_of_living[1]  # *4/3 #The problem is that nash equiibrium does not exist in the low levels...
+        eps = 0.7
+        epsn = 0.7
+
+        cmax, cp = growth_max
+        cmax = 1/5*cmax
+        mu0 = cost_of_living[0]/2 #*2  # cost_of_living[0] #/3 #*2#/2#*5 #*60 #/2 #6/7 was not eough to provoke an effect... There seemed to be an effect when using least-squares with 9/10 around 0.07, but might have been an artifact
+        mu1 = cost_of_living[0] # /3 #*2 #*2#/2#*5 #*2 #*10 #/2
+        nu0 = nu[0]  # nu
+        nu1 = nu[1]  # nu
+
+        self.params =  {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0':phi0, 'phi1': phi1,
+          'resource': base, 'lam':lam, 'nu0':nu0, 'nu1': nu1}
         self.opt_prey = opt_prey
         self.opt_pred = opt_pred
-        self.step_size = step_size
+        self.strat = np.array([0.5, 0.5])
+        self.population = ivp
+        self.metabolism = metabolism
 
-    def optimal_behavior_trajectories_implc(y, self):
-        C = y[0]
-        N = y[1]
-        P = y[2]
-        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
-        taun, taup = self.strat_finder(y)
-        Cdot = lam * (cbar - C) - cmax * N * taun * C / (taun * C + cmax)
-        Ndot = N * (epsn * cmax * taun * C / (taun * C + cmax) - taup * taun * P * cp * 1 / (
-                    taup * taun * N + cp) - mu0 * taun - mu1)
-        Pdot = P * (cp * eps * taup * taun * N / (N * taup * taun + cp) - phi0 * taup - phi1)
-        return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
+    def parameter_calculator_mass(self, mass_vector, alpha=15, b=330 / 12, v=0.05):
+        # alpha = 15
+        # b = 330/12
+        # v = 0.1 #/12
+        maximum_consumption_rate = alpha * mass_vector[1:] ** (0.75)
 
-    def static_eq_calc(self):
-        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
+        ci = v * maximum_consumption_rate
+        ci[0] = ci[0]
+        # ci[-1] = ci[-1]*0.1
+        # print(maximum_consumption_rate)
+        r0 = 0.1
+        nu = alpha / b * mass_vector[1:] ** (0)
+        # print(ci)
+
+        return ci, nu, maximum_consumption_rate, r0
+
+    def update_pop(self, time_step = 0.0005):
+        self.population += time_step*self.optimal_behavior_trajectories()
+
+
+    def taun_linear(self, taup):
+        root_object = optm.root(lambda strat: num_derr(
+            lambda s_prey: self.taun_fitness_II_linear(s_prey, taup), strat, 0.00001),
+                                x0=self.strat[0])
+
+        val_max = max(min(root_object.x, 1), 0)
+        strategy_selection = np.array([0, root_object.x, 1])
+        return val_max #Should use strategy selection algorithm
+
+    def static_eq_calc(params):
+        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
         phitild = phi0 + phi1
         mutild = mu0 + mu1
-        N_star = phitild * cp / (
-                    cp * eps - phitild)  # -(epsn*cmax*lam + cp/(phitild*eps))/(cmax*epsn-cp/phitild-mutild)
-        btild = cmax * (1 + N_star / lam) - cbar
+        C_star = phitild * nu1 / (eps * cp - phitild)
+        gam = nu0 - cbar + (cmax / lam) * C_star
+        #    print(gam, gam**2, 4*cbar*nu0, np.sqrt(gam**2+4*cbar*nu0))
+        R_star = (-gam + np.sqrt(gam ** 2 + 4 * cbar * nu0)) / 2
+        P_star = (epsn * C_star * R_star * cmax / (R_star + nu0) - mutild * C_star) / (cp * C_star / (C_star + nu1))
 
-        C_star = 1 / 2 * (-btild + np.sqrt(btild ** 2 + 4 * cbar * cmax))
-
-        P_star = (1 / cp + 1 / N_star) * (epsn * lam * (cbar - C_star) - mutild * N_star)
-        #    print(np.array([C_star, N_star, P_star]))
-        return np.array([C_star, N_star, P_star])
-
-    def jacobian_calculator(f, x, h):
-        jac = np.zeros((x.shape[0], x.shape[0]))
-        x_m = np.copy(x)
-        x_p = np.copy(x)
-        for i in range(len((x))):
-            x_m[i] -= h
-            x_p[i] += h
-            jac[:, i] = (f(x_p) - f(x_m)) / (2 * h)
-            x_m = np.copy(x)
-            x_p = np.copy(x)
-
-        return jac
-
-    def strat_finder(y, self):
-        C, N, P = y[0], y[1], y[2]
-        taun = 1
-        taup = 1
-        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
-
-        if self.opt_prey is True and self.opt_pred is True:
-            taun = min(max(self.opt_taun_find(y), 0), 1)
-            taup = min(max(self.opt_taup_find(y, taun), 0), 1)
-
-        elif self.opt_prey is True and self.opt_pred is False:
-            taun = min(max(optm.minimize(lambda s_prey: -(cmax * epsn * s_prey * C / (s_prey * C + cmax)
-                                                          - cp * taup * s_prey * P / (taup * s_prey * N + cp)
-                                                          - mu0 * s_prey - mu1), 0.5).x[0], 0), 1)
-
-        elif self.opt_pred is True and self.opt_prey is False:
-            taup = min(max(taup(taun, N), 0), 1)
-
-        return np.array([taun]), np.array([taup])
+        #    print(cp*C_star/(C_star+nu1), epsn * C_star*R_star*cmax/(R_star+nu0))
+        if P_star < 0 or C_star < 0:
+            R_star = nu0 * mutild / (epsn * cmax + mutild)
+            C_star = lam * (cbar - R_star) * (R_star + nu0) / (cmax * R_star)
+            P_star = 0
+        if C_star < 0:
+            R_star = cbar
+            P_star = 0
+            C_star = 0
+        return np.array([R_star, C_star, P_star])
 
 
-    def opt_taup_find(y, taun, self):
-        C = y[0]
-        N = y[1]
-        P = y[2]
-        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
-        if taun is 0:
-            return 0
+    def optimal_behavior_trajectories(self):
+        C = self.population[0]
+        N = self.population[1]
+        P = self.population[2]
+        taun = self.strat[0]
+        taup = self.strat[1]
+
+        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = self.params.values()
+        Cdot = lam * (cbar - C) - cmax * N * taun * C / (taun * C + nu0)
+        Ndot = N * (epsn * cmax * taun * C / (taun * C + nu0) - taup * taun * P * cp / (
+                    taup * taun * N + nu1) - mu0 * taun - mu1)
+        Pdot = P * (cp * eps * taup * taun * N / (
+                    N * taup * taun + nu1) - phi0 * taup ** 2 - phi1)  # Square cost removed
+
+#        print(C, N, taun, "Optimal behavior trajectories", mu0, self.params['mu0'])
+        return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
+
+
+    def taun_fitness_II_linear(self, s_prey, s_pred):
+        R, C, P = self.population[0], self.population[1], self.population[2]
+
+        return self.params['epsn'] * self.params['cmax'] * s_prey * R / (s_prey * R + self.params['nu0']) - \
+               self.params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + self.params['nu1']) - self.params['mu1'] - self.params['mu0'] * s_prey
+
+    def opt_taun_analytical(self, y, taup, s, eps, gamma, params=None):
+        R, C, P = self.population[0], self.population[1], self.population[2]
+
+        eta = (taup * P * s ** (3 / 4) * (eps * R) ** (-1)) ** (1 / 2)
+
+        tauc = gamma * (1 - eta) / (R * eta - C * taup)
+
+        tauc = np.array([tauc])
+        if len(tauc.shape) > 1:
+            tauc = np.squeeze(tauc)
+
+        tauc[tauc > 1] = 1
+
+        tauc[tauc < 0] = 0.000001
+        return tauc
+
+    def nash_eq_find(self):
+        y = self.population
+        if self.metabolism is False:
+            testing_numbers = np.linspace(0.0000005, 1, 100)
+            x0 = testing_numbers[(self.opt_taun_analytical(self.opt_taup_find(testing_numbers, self.params), 100, self.params['eps'],
+                                                      self.params['nu0']) - testing_numbers) < 0]
+            x0 = x0[0]
+            # optimal_strategy = optm.fixed_point(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0']), x0 = x0)
+
+            optimal_strategy = optm.root_scalar(
+                    lambda strat: self.opt_taun_analytical(y, self.opt_taup_find(strat)[0], 100, self.params['eps'],
+                                                      self.params['nu0']) - strat, bracket=[0.0000005, x0], xtol=10 ** (-7))
+            taun = np.array([optimal_strategy.root])
+            taup = self.opt_taup_find(taun)
+                # print(optimal_strategy.root, taun, taup)
+            if (np.isnan(taup) and taun != 0):
+                testing_numbers = np.linspace(0.000001, 1, 1000)
+                optimal_coordinate = np.argmax(self.params['cp'] * self.params['eps'] * testing_numbers * 1 * y[1] / (
+                            y[1] * testing_numbers * 1 + self.params['nu1']) - self.params['phi0'] * testing_numbers ** 2 -
+                                               self.params['phi1'])
+                taup = testing_numbers[optimal_coordinate]
+                taun = np.array([1])
+            elif (np.isnan(taup) and taun[0] == 0):
+                taup = np.array([0])
+            self.strat[0] = taun
+            self.strat[1] = taup
         else:
-            # taun = np.array([taun])
-            # print(np.min(np.concatenate([np.max(np.concatenate([cp * (np.sqrt(eps / (phi0 * taun * N)) - 1 / (N * taun)), np.array([1]) ])), np.array[0]])))
-            res = cp * (np.sqrt(eps / (phi0 * taun * N)) - 1 / (N * taun))
-            if res < 0 or res > 1:
-                tau1 = cp * eps * 1 * taun * N / (N * 1 * taun + cp) - phi0 * 1 - phi1
-                tau0 = -phi1
-                if tau1 > tau0:
-                    res = 1
-                else:
-                    res = 0
-            return res
-
-    def opt_taun_find(y, self):
-        C, N, P = y[0], y[1], y[2]
-        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
-
-        taun_fitness_II = lambda s_prey: \
-            epsn * cmax * s_prey * C / (s_prey * C + cmax) - cp * self.opt_taup_find(y, s_prey) * s_prey * P / (
-                    self.opt_taup_find(y, s_prey) * s_prey * N + cp) - mu0 * s_prey - mu1
-        taun_fitness_II_d = lambda s_prey: epsn * cmax ** 2 * C / (s_prey * C + cmax) ** 2 \
-                                           - 3 / 2 * (N ** 2 * cp * (eps / (phi0 * N)) ** (1 / 2) * s_prey ** (
-                    5 / 2)) ** (-1) - mu0
-
-        linsp = np.linspace(0.001, 1, 100)
-        comparison_numbs = (taun_fitness_II_d(linsp))
-        if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
-            t0 = taun_fitness_II(0)
-            t1 = taun_fitness_II(1)
-            if t0 > t1:
-                max_cands = 0
+            if y[-1]>10**(-8):
+                taun = optm.root(lambda strat: self.taun_linear(strat) - strat, x0 = self.strat[0]).x
+                if taun > 1:
+                    taun = np.array([1])
+                taup = self.opt_taup_find(taun)
+                if (np.isnan(taup) and taun != 0):
+                    taup = np.array([0])
+                self.strat[0] = taun[0]
+                self.strat[1] = taup[0]
             else:
-                max_cands = 1
+                #taun = optm.root(lambda strat: num_derr(lambda s_prey: self.taun_fitness_II_linear(s_prey, 0), strat, 0.000005), x0 = self.strat[0]).x
+                #print(self.taun_fitness_II_linear(taun, 0), "Before division")
+                taun = np.sqrt(self.params['cmax']*self.params['nu0']*self.params['eps'] / (self.params['mu0'] * y[0])) - self.params['nu0'] / y[0]
 
+                #print(taun, "TAUN")
+                #print(self.taun_fitness_II_linear(taun, 0), self.taun_fitness_II_linear(taun / 10, 0), self.taun_fitness_II_linear(1, 0), taun)
+
+                if taun > 1:
+                    taun = np.array([1])
+
+                #print(self.taun_fitness_II_linear(1.2, 0), self.taun_fitness_II_linear(taun, 0))
+                self.strat[0] = taun
+                self.strat[1] = np.array([0])
+
+    def opt_taup_find(self, s_prey):
+        y = self.population
+        k = s_prey * y[1] / self.params['nu1']
+        c = self.params['cp'] / self.params['nu1'] * self.params['eps'] * s_prey * y[1] / self.params['phi0']
+        x = 1 / 3 * (2 ** (2 / 3) / (
+                3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (
+                                 1 / 3)
+                     + (3 * np.sqrt(3) * np.sqrt(
+                    27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (
+                             1 / 3) / (2 ** (2 / 3) * k ** 2) - 2 / k)  # Why was WA not included!?!?
+        x = np.array([x])
+        if max(x.shape) > 1:
+            x = np.squeeze(x)
+            x[x > 1] = 1
+            # print("Alarm!")
         else:
-            maxi_mill = linsp[np.where(comparison_numbs > 0)[0][-1]]
-            max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[0.001, maxi_mill], method='brentq').root
+            if x[0] > 1:
+                x[0] = 1
+        x[x < 0] = 0
+        return x
 
-        return max_cands
+    def strat_setter(self, strategy):
+        self.strat = strategy
 
-    def optimal_behavior_trajectories(self, t, y, taun=1, taup=1):
-        C = y[0]
-        N = y[1]
-        P = y[2]
-        cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = self.params.values()
-        if self.seasons is True:
-            Cdot = lam * (cbar + 0.5 * cbar * np.cos(t * np.pi / 180) - C) - N * taun * C / (
-                        taun * C + cmax)  # t is one month
-        else:
-            Cdot = lam * (cbar - C) - cmax * N * taun * C / (taun * C + cmax)
-        flux_c_to_n = N * taun * C / (taun * C + cmax)
-        flux_n_to_p = N * taup * taun * P * cp * 1 / (taup * taun * N + cp)  # Now these values are calculated twice..
-        Ndot = N * (epsn * cmax * taun * C / (taun * C + cmax) - taup * taun * P * cp * 1 / (
-                    taup * taun * N + cp) - mu0 * taun - mu1)
-        Pdot = P * (cp * eps * taup * taun * N / (N * taup * taun + cp) - phi0 * taup - phi1)
-        return np.array([Cdot, Ndot, Pdot, flux_c_to_n, flux_n_to_p])
+    def pop_setter(self, population):
+        self.population = population
 
-    def semi_implicit_euler(self, t_final, y0, step_size, f, params):
-        solution = np.zeros((y0.shape[0], int(t_final / step_size)))
-        flux = np.zeros((2, int(t_final / step_size)))
-        strat = np.zeros((2, int(t_final / step_size)))
-        t = np.zeros(int(t_final / step_size))
-        solution[:, 0] = y0
-        for i in range(1, int(t_final / step_size)):
-            taun_best, taup_best = self.strat_finder(solution[:, i - 1], params)
-            strat[:, i] = taun_best, taup_best
+    def resource_setter(self, resource):
+        self.params['resource'] = resource
 
-            fwd = f(t[i], solution[:, i - 1], taun_best, taup_best)
-            t[i] = t[i - 1] + step_size
-            solution[:, i] = solution[:, i - 1] + step_size * fwd[0:3]
-            flux[:, i] = fwd[3:]
-        return t, solution, flux, strat
+    def optimizer(self, pop):
+        self.population = pop
+        self.nash_eq_find()
+#        print("Optimal trajectory:", self.optimal_behavior_trajectories())
+        return self.optimal_behavior_trajectories()
 
-    def dynamic_pred_prey(self):
-        t_end = 120
+    def gilliam_nash(self, strat_vec):
+        R, C, P = self.population[0], self.population[1], self.population[2]
+        s_prey, s_pred = strat_vec[0], strat_vec[1]
+        prey_gill = lambda prey_s : (self.params['epsn'] * self.params['cmax'] * prey_s * R / (prey_s * R + self.params['nu0'])
+                     - self.params['mu0'] * prey_s)/(self.params['cp'] * s_pred * prey_s * P / (s_pred * prey_s * C + self.params['nu1']))
+        pred_gill =lambda pred_s:  (self.params['cp'] * self.params['eps'] * s_prey * pred_s * C / (C * s_prey*pred_s + self.params['nu1']))/(self.params['phi0'] * pred_s ** 2)
 
-        init = np.array([0.8, 0.5, 0.5])
-        time_b, sol_basic, flux_bas, strat_bas = self.semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
-        self.optimal_behavior_trajectories(t, y, taun=tn, taup=tp), self.params)
-        base_case = np.array([sol_basic[0, -1], sol_basic[1, -1], sol_basic[2, -1]])
+        der_prey = num_derr(prey_gill, s_prey, 0.00000001)
+        der_pred = num_derr(pred_gill, s_pred, 0.00000001)
 
-        tim, sol, flux, strats = self.semi_implicit_euler(t_end, base_case, 0.001, lambda t, y, tn, tp:
-        self.optimal_behavior_trajectories(t, y, taun=tn, taup=tp))
+        return der_prey, der_pred
 
-        strats = np.zeros((self.its, 2))
-        fluxes = np.zeros((self.its, 2))
-        pops = np.zeros((self.its, 3))
-        t_end = 100
-        params = copy.deepcopy(self.params)
-        for i in range(0, its):
-            params['resource'] = self.base + self.step_size * i
-            init = np.array([sol[0, -1], sol[1, -1], sol[2, -1]])
-            tim, sol, flux, strat = self.semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
-            self.optimal_behavior_trajectories(t, y, taun=tn, taup=tp))
+    def no_coexist_steady_state(self):
 
-            tim_OG, sol_OG, flux_OG, strat_OG = self.semi_implicit_euler(t_end, init, 0.001, lambda t, y, tn, tp:
-            self.optimal_behavior_trajectories(t, y, taun=tn, taup=tp))
-            pops[i] = np.sum((sol-sol_OG)*0.001, axis = 1) #sol[:,-1] - sol_OG[:,-1]
-            strats[i] = strat[:, -1]
-            if strats[i, 0] is 0 or strats[i, 1] is 0:
-                print(strat)
-            fluxes[i] = np.sum((flux - flux_OG) * 0.001, axis=1)
-            # print(fluxes[i], pops[i], phi0_dyn, base+step_size*i)
-        return np.hstack([strats, pops, fluxes])
+        const1 = self.params['cmax']*self.params['eps']*self.params['nu0']
+        const2 = (const1/self.params['mu0'])**0.5
+        const3 = (const2*(self.params['cmax']*self.params['eps']-self.params['mu1']))
+        const4 = const1/const3
 
+        const5 = self.params['nu0']*(self.params['cmax']*self.params['eps']*self.params['mu1'])**(0.5)
+        x = const4 + const5/const3
 
-    base = 14
-    its = 1
-    step_size = 1
-    step_size_phi = 0.05
-    cbar = base
-    phi0_base = 0.4
+        Rstar = x**2
 
-    cmax = 2
-    mu0 = 0.2
-    mu1 = 0.3
-    eps = 0.7
-    epsn = 0.7
-    cp = 2
-    phi0 = phi0_base
-    phi1 = 0.2
-    lam = 0.5
+        tauc = np.sqrt(self.params['cmax']*self.params['nu0']*self.params['eps'] / (self.params['mu0'] * Rstar)) - self.params['nu0'] / Rstar
+        Nstar = self.params['lam']*(self.params['resource']-Rstar)*(tauc*Rstar+self.params['nu0'])/(self.params['cmax']*Rstar*tauc)
 
-    opt_prey = True
-    opt_pred = True
-    # Currently the affinity is set to 1!!
+        self.pop_setter(np.array([Rstar, Nstar, 0]))
+        self.strat_setter(np.array([tauc, 0]))
+        #print(Rstar, tauc, Nstar, self.optimal_behavior_trajectories())
 
-    params_ext = {'cmax': cmax, 'mu0': mu0, 'mu1': mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0': phi0, 'phi1': phi1,
-                  'resource': base, 'lam': lam}

@@ -4,6 +4,9 @@ import analytical_numerical_solution as an_sol
 import semi_impl_eul as num_sol
 import matplotlib.pyplot as plt
 
+"Possible results to add to article: coexistence ecosystem  at lower resource level, functional response"
+
+
 configuration = {'verbose' : False, 'quadratic' : True, 'metabolic_cost' : False}
 
 
@@ -20,8 +23,8 @@ one_dim_its = int(total_range/step_size)
 
 cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector, v = 0.1)
 base = 16
-phi1 = cost_of_living[1] #/3 #*2#/2#*5
-phi0 = cost_of_living[1]
+phi1 = cost_of_living[1]#*2/3 #/3 #*2#/2#*5
+phi0 = cost_of_living[1]#*4/3 #The problem is that nash equiibrium does not exist in the low levels...
 eps = 0.7
 epsn = 0.7
 
@@ -37,6 +40,8 @@ params_ext = {'cmax' : cmax, 'mu0' : mu0, 'mu1' : mu1, 'eps': eps, 'epsn': epsn,
 
 t_end = 5
 init = 2*static_eq_calc(params_ext) #np.array([0.5383403,  0.23503815, 0.00726976]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
+
+#params_ext['resource'] = 16 This si for the low-resource paradigm
 tim, sol, flux, strat = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
 num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=True)
 tim, sol_2, flux_2, strat_2 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
@@ -136,6 +141,31 @@ plt.ylabel("Intensity")
 plt.legend(loc = 'center left')
 plt.savefig("Indsvingning_strat.png")
 
+
+opponent_strats = np.linspace(0.01,1,100)
+
+taun_data = opt_taun_analytical(sol[:,-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0'])
+
+taun_data[taun_data > 1] = 1
+taun_data[taun_data < 0] = 0
+taups = opt_taup_find(sol[:,-1], opponent_strats, params_ext)
+nesh = opt_taun_analytical(sol[:,-1], opt_taup_find(sol[:,-1], opponent_strats, params_ext), mass_vector[2], epsn, params_ext['nu0'])
+nush = opt_taup_find(sol[:,-1], opt_taun_analytical(sol[:,-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0']), params_ext)
+nesh = nesh - opponent_strats
+nush = nush - opponent_strats
+plt.figure()
+plt.plot(taun_data, opponent_strats, label = "Best response of consumer")
+plt.plot(opponent_strats, opt_taup_find(sol[:,-1], opponent_strats, params_ext), label = 'Best response of predator')
+#plt.plot(opponent_strats,nesh, label = 'Best response of prey - prey strategy' )
+#plt.plot(opponent_strats,nush, label = 'Best response of predator - predator strategy' )
+#plt.ylabel("Intensity")
+plt.ylabel("$\\tau_1$")
+plt.xlabel("$\\tau_0$")
+plt.title("Strategies for R " + str(np.round(sol[0,-1], 8)) + " C: " + str(np.round(sol[1,-1], 8)) + " P: " +  str(np.round(sol[2,-1], 8)) ) #, np.round(dynamic_equilibria[-1], 2))
+plt.legend(loc = 'center left')
+plt.savefig('Strategy_Intersection.png')
+
+
 #print(strat[0,1:])
 
 #plt.figure()
@@ -211,8 +241,8 @@ for i in range(one_dim_its):
  #   print(x_ext, params_ext['resource'])
     sol_temp = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x0=x_ext, method='hybr')
     x_ext = sol_temp.x
-#    sol_temp_stackelberg = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, nash = False), x0=x_ext_stack, method='hybr')
-#    x_ext_stack = sol_temp_stackelberg.x
+    sol_temp_stackelberg = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, nash = False), x0=x_ext_stack, method='hybr')
+    x_ext_stack = sol_temp_stackelberg.x
     print(sol_temp.message, base - i*step_size)
 
 
@@ -223,10 +253,10 @@ for i in range(one_dim_its):
     optimal_strategies[i,1] = tp[0]
     dynamic_equilibria[i] = x_ext
 
-#    tc_s, tp_s = strat_finder(x_ext_stack, params_ext)
-#   optimal_strategies_stack[i,0] = tc_s
-#  optimal_strategies_stack[i,1] = tp_s
-#  dynamic_equilibria_stack[i] = x_ext_stack
+    tc_s, tp_s = strat_finder(x_ext_stack, params_ext)
+    optimal_strategies_stack[i,0] = tc_s
+    optimal_strategies_stack[i,1] = tp_s
+    dynamic_equilibria_stack[i] = x_ext_stack
 
 #    optimal_prey[i] = x_prey
 #    optimal_pred[i] = x_pred
@@ -269,20 +299,6 @@ opponent_strats = np.linspace(0.01,1,100)
 #plt.show()
 print(epsn, params_ext['nu0'], mass_vector[2])
 #taun_data = opt_taun_analytical(sol[-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0'])
-taun_data = opt_taun_analytical(dynamic_equilibria[-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0'])
-
-taun_data[taun_data > 1] = 1
-taun_data[taun_data < 0] = 0
-plt.figure()
-plt.plot(opponent_strats, taun_data, label = "Best response of consumer")
-plt.plot(opponent_strats, opt_taup_find(dynamic_equilibria[-1], opponent_strats, params_ext), label = 'Best response of predator')
-#plt.plot(opponent_strats, opt_taup_find(sol[-1], opponent_strats, params_ext), label = 'Best response of predator')
-
-plt.xlabel("$\\tau_0$")
-plt.ylabel("$\\tau_1$")
-plt.title("Strategies for R, C, P: " + str(np.round(dynamic_equilibria[-1,0], 2)) + str(np.round(dynamic_equilibria[-1,1], 2)) + str(np.round(dynamic_equilibria[-1,2], 2)) ) #, np.round(dynamic_equilibria[-1], 2))
-plt.legend(loc = 'center left')
-plt.savefig('Strategy_Intersection.png')
 
 equilibria = np.log(equilibria)
 dynamic_equilibria = np.log(dynamic_equilibria)
@@ -303,8 +319,8 @@ plt.plot(list_of_cbars, equilibria[:,2], label = 'Static predator')
 plt.plot(list_of_cbars, dynamic_equilibria[:, 1], label = 'Nash consumer')
 plt.plot(list_of_cbars, dynamic_equilibria[:, 2], label = 'Nash predator')
 
-#plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 1], label = 'Stackelberg consumer')
-#plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 2], label = 'Stackelberg predator')
+plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 1], label = 'Stackelberg consumer')
+plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 2], label = 'Stackelberg predator')
 
 plt.xlabel('Nutrient biomass in $m_p/m^3$')
 plt.ylabel('Log biomass in $m_p/m^3$')
@@ -353,8 +369,8 @@ plt.figure()
 plt.plot(list_of_cbars, optimal_strategies[:,0], label = 'Nash Consumer')
 plt.plot(list_of_cbars, optimal_strategies[:,1], label = 'Nash Predator')
 
-#plt.plot(list_of_cbars, optimal_strategies_stack[:,0], label = 'Stackelberg Consumer')
-#plt.plot(list_of_cbars, optimal_strategies_stack[:,1], label = 'Stackelberg Predator')
+plt.plot(list_of_cbars, optimal_strategies_stack[:,0], label = 'Stackelberg Consumer')
+plt.plot(list_of_cbars, optimal_strategies_stack[:,1], label = 'Stackelberg Predator')
 
 plt.ylabel("Activity level")
 plt.xlabel("$m_p/(day \cdot m^3)$")
@@ -374,3 +390,22 @@ plt.savefig("Strategies.png")
 #                    params_ext))
 
 
+plt.figure()
+plt.title("Functional response of consumer, C " + str(np.round(sol[1,-1], 2)) + " P " + str(np.round(sol[2, -1],2)))
+plt.plot(np.exp(dynamic_equilibria[:,0]), params_ext['cmax']*np.exp(dynamic_equilibria[:,0])/(np.exp(dynamic_equilibria[:,0])+params_ext['nu0']), 'x', label = "Consumer functional response, non-optimal",alpha=0.5)
+plt.plot(np.exp(dynamic_equilibria[:,0]), params_ext['cmax']*optimal_strategies[:,0]*np.exp(dynamic_equilibria[:,0])/(optimal_strategies[:,0]*np.exp(dynamic_equilibria[:,0])+params_ext['nu0']), 'x', label = "Consumer functional response, optimal",alpha=0.5)
+plt.xlabel("Resource")
+plt.ylabel("Functional response consumer")
+plt.legend(loc='center left')
+plt.savefig("Functional_response_consumer_resource_load.png")
+
+
+plt.figure()
+plt.title("Functional response of predator, P " + str(np.round(sol[2,-1], 2)) + " R " + str(np.round(sol[0, -1],2)))
+plt.plot(np.exp(dynamic_equilibria[:,0]), params_ext['cp']*np.exp(dynamic_equilibria[:,1])/(np.exp(dynamic_equilibria[:,1])+params_ext['nu0']), 'x', label = "Predator functional response, non-optimal",alpha=0.5)
+plt.plot(np.exp(dynamic_equilibria[:,0]), params_ext['cp']*optimal_strategies[:,0]*optimal_strategies[:,1]*np.exp(dynamic_equilibria[:,1])/(optimal_strategies[:,0]*optimal_strategies[:,1]*np.exp(dynamic_equilibria[:,1])+params_ext['nu0']), 'x', label = "Predator functional response, optimal",alpha=0.5)
+plt.xlabel("Prey")
+plt.ylabel("Functional response")
+plt.legend(loc = 'center left')
+plt.savefig("Functional_response_predator_resource_load.png")
+print(params_ext['cmax'], params_ext['cp'])

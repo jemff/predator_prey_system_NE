@@ -152,49 +152,69 @@ def opt_taun_linear(y, taup, params, v = 0.1, s=100, eps = 0.14, nu = 0.54545454
     return solution_3
 
 
+def taun_linear(y, taup, params):
+    root_object = optm.root(lambda strat: num_derr(lambda s_prey: taun_fitness_II_linear(s_prey, taup, params, y[0], y[1], y[2]), strat, 0.00001), x0 = 1)
+    return max(root_object.x, np.array([1]))
+
+def multi_objective_root(y, taun, taup, params):
+    return np.array([taun_linear(y, taup, params)-taun, opt_taup_find(y, taun, params)[0] - taup])
 
 def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
 
     if opt_pred is True and opt_prey is True:
-        testing_numbers = np.linspace(0.000001, 1, 100)
+        testing_numbers = np.linspace(0.0000005, 1, 100)
         x0 = testing_numbers[(opt_taun_analytical(y, opt_taup_find(y, testing_numbers, params), 100, params['eps'], params['nu0']) - testing_numbers) < 0]
         if len(x0)<1:
-    #        print(len(x0), x0)
             taun, taup = working_nash_eq_find(y, params, opt_prey = True, opt_pred = True)
         else:
             x0 = x0[0]
-#            print(x0)
-            optimal_strategy = optm.root_scalar(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'])-strat, bracket = [0.000001, x0])
+            #optimal_strategy = optm.fixed_point(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0']), x0 = x0)
+
+
+            optimal_strategy = optm.root_scalar(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'])-strat, bracket = [0.0000005, x0], xtol = 10**(-7))
             taun = np.array([optimal_strategy.root])
             taup = opt_taup_find(y, taun, params)
-        if np.isnan(taup):
+            #print(optimal_strategy.root, taun, taup)
+        if (np.isnan(taup) and taun != 0):
             testing_numbers = np.linspace(0.000001, 1, 1000)
             optimal_coordinate = np.argmax(params['cp'] * params['eps'] * testing_numbers * 1 * y[1] / (y[1] * testing_numbers * 1 + params['nu1']) - params['phi0'] * testing_numbers ** 2 - params['phi1'])
             taup = testing_numbers[optimal_coordinate]
             taun = np.array([1])
             #print(np.max(params['cp'] * params['eps'] * testing_numbers * 1 * y[1] / (y[1] * taup * taun + params['nu1']) - params['phi0'] * testing_numbers ** 2 - params['phi1']), "This is it?",
+
             #      testing_numbers[optimal_coordinate], params['cp'] * params['eps'] * 1 * 1 * y[1] / (y[1] * taup * taun + params['nu1']) - params['phi0'] * 1 ** 2 - params['phi1'], optimal_coordinate)
+        elif (np.isnan(taup) and taun[0] == 0):
+            taup = np.array([0])
+            print(taup, taun, y)
     else:
         taun = np.array([1])
         taup = np.array([1])
+    if taun <= 0.00001:
+        list_of_nums = np.linspace(0.000001, 1, 100)
+ #       print(np.max(taun_fitness_II_linear(1, list_of_nums, params, y[0], y[1], y[2])), np.max(taun_fitness_II_linear(0.5, list_of_nums, params, y[0], y[1], y[2])))
+
+    #print(opt_taun_analytical(y, opt_taup_find(y, taun, params)[0], 100, params['eps'], params['nu0']), taun, taup)
     return taun, taup
 
 
 
 def working_nash_eq_find(y, params, opt_prey = True, opt_pred = True):
     if opt_pred and opt_prey is True:
-        testing_numbers = np.linspace(0.01, 1, 100)
-        valid_responses = opt_taun_analytical(y, testing_numbers, 100, params['eps'], params['nu0'])
-        if np.min(valid_responses)>1: #fix the magic numbers
-            taun = np.array([1])
-            taup = opt_taup_find(y, taun, params)[0]
-        elif np.max(valid_responses)<0:
-            taun = 0
-            taup = 0
+        #testing_numbers = np.linspace(0.01, 1, 100)
+        #valid_responses = opt_taun_analytical(y, testing_numbers, 100, params['eps'], params['nu0'])
+        #if np.min(valid_responses)>1: #fix the magic numbers
+        #    taun = np.array([1])
+        #    taup = opt_taup_find(y, taun, params)[0]
+        #elif np.max(valid_responses)<0:
+        #    taun = 0
+        #    taup = 0
 
-        else:
-            taun = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'])-strat, x0 = np.array([0.5])).x
-            taup = opt_taup_find(y, taun, params)[0]
+        #else:
+        root_obj = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'], params = params)-strat, x0 = np.array([1]))
+        taun = root_obj.x
+        taup = opt_taup_find(y, taun, params)[0]
+#        print(taun, taup, root_obj.message, "Outer root")
+
         if taun>1:
             taun = np.array([1])
             taup = opt_taup_find(y, taun, params)[0]
@@ -203,6 +223,7 @@ def working_nash_eq_find(y, params, opt_prey = True, opt_pred = True):
         taun = 1
         taup = 1
 #    print(opt_taup_find(y, 0.5, params))
+
     return taun, taup
 
 
@@ -348,7 +369,7 @@ def parameter_calculator_mass(mass_vector, alpha = 15, b = 330/12, v = 0.05):
 
 def taun_fitness_II_linear(s_prey, s_pred, params, R, C, P):
     return params['epsn'] * params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['cp'] * s_pred * s_prey * P / (
-                s_pred * s_prey * C + params['nu1']) - params['mu1']
+                s_pred * s_prey * C + params['nu1']) - params['mu1'] - params['mu0']*s_prey #This does have linear cost???
 
 def taun_fitness_II(s_prey, params, R, C, P):
     y = np.array([R, C, P])
@@ -440,7 +461,7 @@ def jacobian_calculator(f, x, h):
 
     return jac
 
-def opt_taun_analytical(y, taup, s, eps, gamma):
+def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
     R, C, P = y[0], y[1], y[2]
 
     eta = (taup*P*s**(3/4)*(eps*R)**(-1))**(1/2)
@@ -451,7 +472,10 @@ def opt_taun_analytical(y, taup, s, eps, gamma):
     if len(tauc.shape)>1:
         tauc = np.squeeze(tauc)
 
-    tauc[tauc>1] = 1
-    tauc[tauc<0] = 0.000001
 
+    tauc[tauc>1] = 1
+#    if len(tauc[tauc<0]) != 0:
+#        tauc = taun_linear(y, taup, params)
+
+    tauc[tauc<0] = 0.000001
     return tauc

@@ -45,21 +45,21 @@ opponent_strats = np.linspace(0.01,1,100)
 
 taun_data = opt_taun_analytical(sol[:,-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0'])
 
-#taun_data[taun_data > 1] = 1
+taun_data[taun_data > 1] = 1
 taun_data[taun_data < 0] = 0
 taups = opt_taup_find(sol[:,-1], opponent_strats, params_ext)
 nesh = opt_taun_analytical(sol[:,-1], opt_taup_find(sol[:,-1], opponent_strats, params_ext), mass_vector[2], epsn, params_ext['nu0'])
 nush = opt_taup_find(sol[:,-1], opt_taun_analytical(sol[:,-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0']), params_ext)
-nesh = nesh# - opponent_strats
-nush = nush# - opponent_strats
-#print(taun_data[nesh<0], taups[nesh<0])
+nesh = nesh - opponent_strats
+nush = nush - opponent_strats
 plt.figure()
-#plt.plot(opponent_strats, taun_data, label = "Best response of consumer")
-#plt.plot(opponent_strats, opt_taup_find(sol[:,-1], opponent_strats, params_ext), label = 'Best response of predator')
-plt.plot(opponent_strats,nesh, label = 'Best response of prey - prey strategy' )
-plt.plot(opponent_strats,nush, label = 'Best response of predator - predator strategy' )
-plt.xlabel("Intensity")
-plt.ylabel("$\\tau_1, \\tau_0$")
+plt.plot(taun_data, opponent_strats, label = "Best response of consumer")
+plt.plot(opponent_strats, opt_taup_find(sol[:,-1], opponent_strats, params_ext), label = 'Best response of predator')
+#plt.plot(opponent_strats,nesh, label = 'Best response of prey - prey strategy' )
+#plt.plot(opponent_strats,nush, label = 'Best response of predator - predator strategy' )
+#plt.ylabel("Intensity")
+plt.ylabel("$\\tau_1$")
+plt.xlabel("$\\tau_0$")
 plt.title("Strategies for R " + str(np.round(sol[0,-1], 8)) + " C: " + str(np.round(sol[1,-1], 8)) + " P: " +  str(np.round(sol[2,-1], 8)) ) #, np.round(dynamic_equilibria[-1], 2))
 plt.legend(loc = 'center left')
 plt.savefig('Strategy_Intersection.png')
