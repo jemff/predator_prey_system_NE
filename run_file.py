@@ -61,7 +61,7 @@ plt.figure()
 plt.title("Functional response of predator, P " + str(np.round(sol[2,-1], 2)) + " R " + str(np.round(sol[0, -1],2)))
 plt.plot(prey_variation, params_ext['cp']*prey_variation/(prey_variation+params_ext['nu0']), 'x', label = "Predator functional response, non-optimal",alpha=0.5)
 plt.plot(prey_variation, params_ext['cp']*frp[:,0]*frp[:,1]*prey_variation/(frp[:,0]*frp[:,1]*prey_variation+params_ext['nu0']), 'x', label = "Predator functional response, optimal",alpha=0.5)
-plt.xlabel("Prey")
+plt.xlabel("Prey in $m_p/m^3$")
 plt.ylabel("Functional response")
 plt.legend(loc = 'center left')
 plt.savefig("Functional_response_predator.png")
@@ -70,8 +70,8 @@ plt.figure()
 plt.title("Functional response of consumer, C " + str(np.round(sol[1,-1], 2)) + " P " + str(np.round(sol[2, -1],2)))
 plt.plot(resource_variation, params_ext['cmax']*resource_variation/(resource_variation+params_ext['nu0']), 'x', label = "Consumer functional response, non-optimal",alpha=0.5)
 plt.plot(resource_variation, params_ext['cmax']*frc[:,0]*resource_variation/(frc[:,0]*resource_variation+params_ext['nu0']), 'x', label = "Consumer functional response, optimal",alpha=0.5)
-plt.xlabel("Resource")
-plt.ylabel("Functional response consumer")
+plt.xlabel("Resource in $m_p/m^3$")
+plt.ylabel("Functional response")
 plt.legend(loc='center left')
 plt.savefig("Functional_response_consumer.png")
 #tim, sol_3, flux_3, strat_3 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
@@ -310,22 +310,45 @@ optimal_pred = np.log(optimal_pred)
 plt.figure()
 #plt.plot(list_of_cbars, equilibria[:,0])
 plt.plot(list_of_cbars, equilibria[:,1], label = 'Static consumer')
-plt.plot(list_of_cbars, equilibria[:,2], label = 'Static predator')
+#plt.plot(list_of_cbars, equilibria[:,2], label = 'Static predator')
 #plt.savefig('Bifurcation_plot.png')
 
 #plt.figure()
 #plt.plot(list_of_cbars, equilibria[:,0])
 #plt.plot(list_of_cbars, dynamic_equilibria[:, 0])
 plt.plot(list_of_cbars, dynamic_equilibria[:, 1], label = 'Nash consumer')
-plt.plot(list_of_cbars, dynamic_equilibria[:, 2], label = 'Nash predator')
+#plt.plot(list_of_cbars, dynamic_equilibria[:, 2], label = 'Nash predator')
 
 plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 1], label = 'Stackelberg consumer')
+#plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 2], label = 'Stackelberg predator')
+
+plt.xlabel('Maximmal resource biomass in $m_p/m^3$')
+plt.ylabel('Log consumer biomass in $m_p/m^3$')
+plt.legend(loc  = 'upper left')
+plt.savefig('Bifurcation_plot_dynamic.png')
+
+
+plt.figure()
+#plt.plot(list_of_cbars, equilibria[:,0])
+#plt.plot(list_of_cbars, equilibria[:,1], label = 'Static consumer')
+plt.plot(list_of_cbars, equilibria[:,2], label = 'Static predator')
+#plt.savefig('Bifurcation_plot.png')
+
+#plt.figure()
+#plt.plot(list_of_cbars, equilibria[:,0])
+#plt.plot(list_of_cbars, dynamic_equilibria[:, 0])
+#plt.plot(list_of_cbars, dynamic_equilibria[:, 1], label = 'Nash consumer')
+plt.plot(list_of_cbars, dynamic_equilibria[:, 2], label = 'Nash predator')
+
+#plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 1], label = 'Stackelberg consumer')
 plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 2], label = 'Stackelberg predator')
 
-plt.xlabel('Nutrient biomass in $m_p/m^3$')
-plt.ylabel('Log biomass in $m_p/m^3$')
-plt.legend(loc  = 'center left')
-plt.savefig('Bifurcation_plot_dynamic.png')
+plt.xlabel('Maximal resource biomass in $m_p/m^3$')
+plt.ylabel('Log predator biomass in $m_p/m^3$')
+plt.legend(loc  = 'upper left')
+plt.savefig('Bifurcation_plot_dynamic_predator.png')
+
+
 
 
 #plt.figure()
@@ -348,7 +371,7 @@ plt.plot(list_of_cbars, np.exp(eigen_values[:,1]), label = 'Nash model')
 #plt.plot(list_of_cbars, np.exp(eigen_values[:,2]), label = 'Dynamic prey')
 #plt.plot(list_of_cbars, np.exp(eigen_values[:,3]), label ='Dynamic predator')
 plt.ylabel('Exp of dominating eigenvalue')
-plt.xlabel("Resource in $m_p/m^3$")
+plt.xlabel("Max resource in $m_p/m^3$")
 plt.legend(loc ='upper left')
 plt.savefig("Eigenvalues_compare.png")
 
@@ -357,7 +380,7 @@ plt.plot(list_of_cbars, flows[:,0]/flows[:,3], label = 'Ratio of flow from 0 to 
 plt.plot(list_of_cbars, flows[:,1]/flows[:,4], label = 'Ratio of flow from 1 to 2, Nash/Static')
 plt.plot(list_of_cbars, flows[:,2]/flows[:,5], label = 'Ratio of flow from 2 to n, Nash/Static')
 
-plt.xlabel("Resource in $m_p/m^3$")
+plt.xlabel("Max resource in $m_p/m^3$")
 plt.ylabel("$m_p/(m^3 \cdot day)$")
 plt.legend(loc = 'center left')
 
@@ -373,7 +396,7 @@ plt.plot(list_of_cbars, optimal_strategies_stack[:,0], label = 'Stackelberg Cons
 plt.plot(list_of_cbars, optimal_strategies_stack[:,1], label = 'Stackelberg Predator')
 
 plt.ylabel("Activity level")
-plt.xlabel("$m_p/(day \cdot m^3)$")
+plt.xlabel("$m_p/(m^3)$")
 plt.legend(loc = 'upper right')
 
 plt.savefig("Strategies.png")
@@ -391,10 +414,10 @@ plt.savefig("Strategies.png")
 
 
 plt.figure()
-plt.title("Functional response of consumer, C " + str(np.round(sol[1,-1], 2)) + " P " + str(np.round(sol[2, -1],2)))
-plt.plot(np.exp(dynamic_equilibria[:,0]), params_ext['cmax']*np.exp(dynamic_equilibria[:,0])/(np.exp(dynamic_equilibria[:,0])+params_ext['nu0']), 'x', label = "Consumer functional response, non-optimal",alpha=0.5)
-plt.plot(np.exp(dynamic_equilibria[:,0]), params_ext['cmax']*optimal_strategies[:,0]*np.exp(dynamic_equilibria[:,0])/(optimal_strategies[:,0]*np.exp(dynamic_equilibria[:,0])+params_ext['nu0']), 'x', label = "Consumer functional response, optimal",alpha=0.5)
-plt.xlabel("Resource")
+plt.title("Functional response of consumer C at steady state")
+plt.plot(list_of_cbars, params_ext['cmax']*np.exp(dynamic_equilibria[:,0])/(np.exp(dynamic_equilibria[:,0])+params_ext['nu0']), 'x', label = "Consumer functional response, non-optimal",alpha=0.5)
+plt.plot(list_of_cbars, params_ext['cmax']*optimal_strategies[:,0]*np.exp(dynamic_equilibria[:,0])/(optimal_strategies[:,0]*np.exp(dynamic_equilibria[:,0])+params_ext['nu0']), 'x', label = "Consumer functional response, optimal",alpha=0.5)
+plt.xlabel("Max resource in $m_p/m^3$ ")
 plt.ylabel("Functional response consumer")
 plt.legend(loc='center left')
 plt.savefig("Functional_response_consumer_resource_load.png")

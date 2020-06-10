@@ -479,3 +479,7 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
 
     tauc[tauc<0] = 0.000001
     return tauc
+
+
+def gilliam_nash(y, s, eps, gamma):
+    pass

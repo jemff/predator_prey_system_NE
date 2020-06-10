@@ -38,8 +38,8 @@ class PredatorPrey:
         epsn = 0.7
 
         cmax, cp = growth_max
-        cmax = 1/5*cmax
-        mu0 = cost_of_living[0]/2 #*2  # cost_of_living[0] #/3 #*2#/2#*5 #*60 #/2 #6/7 was not eough to provoke an effect... There seemed to be an effect when using least-squares with 9/10 around 0.07, but might have been an artifact
+        #cmax = 1/5 *cmax
+        mu0 = 0 # cost_of_living[0]/2 #*2  # cost_of_living[0] #/3 #*2#/2#*5 #*60 #/2 #6/7 was not eough to provoke an effect... There seemed to be an effect when using least-squares with 9/10 around 0.07, but might have been an artifact
         mu1 = cost_of_living[0] # /3 #*2 #*2#/2#*5 #*2 #*10 #/2
         nu0 = nu[0]  # nu
         nu1 = nu[1]  # nu
@@ -225,12 +225,43 @@ class PredatorPrey:
     def resource_setter(self, resource):
         self.params['resource'] = resource
 
-    def optimizer(self, pop):
+
+    def gilliam_nash_find(self):
+        gill_strat = optm.root(self.gilliam_nash, x0=self.strat).x
+        gill_strat[gill_strat < 0] = 0
+        gill_strat[gill_strat > 1] = 1
+
+        self.strat = gill_strat
+
+    def optimizer(self, pop, gilliam = False):
         self.population = pop
-        self.nash_eq_find()
-#        print("Optimal trajectory:", self.optimal_behavior_trajectories())
+        if gilliam is False:
+            self.nash_eq_find()
+        else:
+            self.ibr_gill_nash()
+            #self.gilliam_nash_find()
+
         return self.optimal_behavior_trajectories()
 
+    def ibr_gill_nash(self):
+        R, C, P = self.population[0], self.population[1], self.population[2]
+        #s_prey, s_pred = self.strat[0], self.strat[1]
+
+        prey_gill = lambda prey_s, s_pred :-(self.params['epsn'] * self.params['cmax'] * prey_s * R / (prey_s * R + self.params['nu0'])
+                     - self.params['mu0'] * prey_s)/(self.params['cp'] * s_pred * prey_s * P / (s_pred * prey_s * C + self.params['nu1']))
+        pred_gill =lambda pred_s, s_prey: -(self.params['cp'] * self.params['eps'] * s_prey * pred_s * C / (C * s_prey*pred_s + self.params['nu1']))/(self.params['phi0'] * pred_s ** 2)
+        error = 1
+        its = 0
+        s = np.zeros(2)
+        while error > 10**(-8):
+            opt_obj =  optm.minimize(lambda x: prey_gill(x, self.strat[1]), x0 = self.strat[0], bounds = [(0.00000001, 1)])
+            s[0] = optm.minimize(lambda x: prey_gill(x, self.strat[1]), x0 = self.strat[0], bounds = [(0.00000001, 1)]).x
+            s[1] = optm.minimize(lambda x: pred_gill(x, self.strat[0]), x0 = self.strat[1], bounds = [(0.00000001, 1)]).x
+            error = max(np.abs(s - self.strat))
+            self.strat = np.copy(s)
+            #print(error, its, )
+            its += 1
+        print(prey_gill(1, self.strat[1]), opt_obj.fun)
     def gilliam_nash(self, strat_vec):
         R, C, P = self.population[0], self.population[1], self.population[2]
         s_prey, s_pred = strat_vec[0], strat_vec[1]
