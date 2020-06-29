@@ -28,6 +28,8 @@ def jacobian_calculator(f, x, h):
     return jac
 
 
+
+
 class PredatorPrey:
     def __init__(self, mass_vector, base, ivp, opt_prey = True, opt_pred = True, nash = True, metabolism = True):
         cost_of_living, nu, growth_max, lam = self.parameter_calculator_mass(mass_vector, v=0.1)
@@ -106,7 +108,7 @@ class PredatorPrey:
 
     def optimal_behavior_trajectories(self):
         C = self.population[0]
-        N = self.population[1]
+        N = self.population[1]H
         P = self.population[2]
         taun = self.strat[0]
         taup = self.strat[1]
@@ -190,8 +192,6 @@ class PredatorPrey:
 
                 if taun > 1:
                     taun = np.array([1])
-
-                #print(self.taun_fitness_II_linear(1.2, 0), self.taun_fitness_II_linear(taun, 0))
                 self.strat[0] = taun
                 self.strat[1] = np.array([0])
 
@@ -245,29 +245,32 @@ class PredatorPrey:
 
     def ibr_gill_nash(self):
         R, C, P = self.population[0], self.population[1], self.population[2]
-        #s_prey, s_pred = self.strat[0], self.strat[1]
 
         prey_gill = lambda prey_s, s_pred :-(self.params['epsn'] * self.params['cmax'] * prey_s * R / (prey_s * R + self.params['nu0'])
-                     - self.params['mu0'] * prey_s)/(self.params['cp'] * s_pred * prey_s * P / (s_pred * prey_s * C + self.params['nu1']))
-        pred_gill =lambda pred_s, s_prey: -(self.params['cp'] * self.params['eps'] * s_prey * pred_s * C / (C * s_prey*pred_s + self.params['nu1']))/(self.params['phi0'] * pred_s ** 2)
+                     - self.params['mu0'] * prey_s - self.params['mu1'])/(self.params['cp'] * s_pred * prey_s * P / (s_pred * prey_s * C + self.params['nu1']))
+        pred_gill = lambda pred_s, s_prey: -(self.params['cp'] * self.params['eps'] * s_prey * pred_s * C / (C * s_prey * pred_s + self.params['nu1']) - self.params['phi1'])/(self.params['phi0'] * pred_s ** 2)
         error = 1
         its = 0
         s = np.zeros(2)
         while error > 10**(-8):
-            opt_obj =  optm.minimize(lambda x: prey_gill(x, self.strat[1]), x0 = self.strat[0], bounds = [(0.00000001, 1)])
             s[0] = optm.minimize(lambda x: prey_gill(x, self.strat[1]), x0 = self.strat[0], bounds = [(0.00000001, 1)]).x
             s[1] = optm.minimize(lambda x: pred_gill(x, self.strat[0]), x0 = self.strat[1], bounds = [(0.00000001, 1)]).x
             error = max(np.abs(s - self.strat))
             self.strat = np.copy(s)
             #print(error, its, )
             its += 1
-        print(prey_gill(1, self.strat[1]), opt_obj.fun)
+            if its > 100:
+                error = 0
+                self.strat = np.array([1, 1])
+                print("AAAAAAAAAAAAAH")
+
+
     def gilliam_nash(self, strat_vec):
         R, C, P = self.population[0], self.population[1], self.population[2]
         s_prey, s_pred = strat_vec[0], strat_vec[1]
-        prey_gill = lambda prey_s : (self.params['epsn'] * self.params['cmax'] * prey_s * R / (prey_s * R + self.params['nu0'])
-                     - self.params['mu0'] * prey_s)/(self.params['cp'] * s_pred * prey_s * P / (s_pred * prey_s * C + self.params['nu1']))
-        pred_gill =lambda pred_s:  (self.params['cp'] * self.params['eps'] * s_prey * pred_s * C / (C * s_prey*pred_s + self.params['nu1']))/(self.params['phi0'] * pred_s ** 2)
+        prey_gill = lambda prey_s :-(self.params['epsn'] * self.params['cmax'] * prey_s * R / (prey_s * R + self.params['nu0'])
+                     - self.params['mu0'] * prey_s - self.params['mu1'])/(self.params['cp'] * s_pred * prey_s * P / (s_pred * prey_s * C + self.params['nu1']))
+        pred_gill =lambda pred_s: -(self.params['cp'] * self.params['eps'] * s_prey * pred_s * C / (C * s_prey*pred_s + self.params['nu1']) - self.params['phi1'])/(self.params['phi0'] * pred_s ** 2)
 
         der_prey = num_derr(prey_gill, s_prey, 0.00000001)
         der_pred = num_derr(pred_gill, s_pred, 0.00000001)

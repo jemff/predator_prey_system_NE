@@ -1,7 +1,3 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy import optimize as optm
-from multiprocessing import Pool
 from oop_pred_prey import *
 
 settings = {'simulate' : False, 'resource_bifurcation': False, 'coexistence': True, 'gilliam' : True}

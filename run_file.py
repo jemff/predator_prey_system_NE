@@ -4,9 +4,6 @@ import analytical_numerical_solution as an_sol
 import semi_impl_eul as num_sol
 import matplotlib.pyplot as plt
 
-"Possible results to add to article: coexistence ecosystem  at lower resource level, functional response"
-
-
 configuration = {'verbose' : False, 'quadratic' : True, 'metabolic_cost' : False}
 
 
@@ -74,48 +71,8 @@ plt.xlabel("Resource in $m_p/m^3$")
 plt.ylabel("Functional response")
 plt.legend(loc='center left')
 plt.savefig("Functional_response_consumer.png")
-#tim, sol_3, flux_3, strat_3 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
-#num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=True, opt_pred=False)
-#tim, sol_4, flux_4, strat_4 = num_sol.semi_implicit_euler(t_end, init, 0.0005, lambda t, y, tn, tp:
-#num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, seasons = False), params_ext, opt_prey=False, opt_pred=True)
-
-#C, N, P =  C, N, P = sol[:,-1]
-
-#print(C, N, P, "CNP1", strat_finder(sol[:,-1], params_ext))
-
-#y = np.array([C, N, P])
-#numbs = np.linspace(0,1,500)
-#taun_fitness_II = lambda s_prey: \
-#    epsn * cmax * s_prey * C / (s_prey * C + nu0) - cp * opt_taup_find(y, s_prey, params_ext) * s_prey * P / (
-#                opt_taup_find(y, s_prey, params_ext) * s_prey * N + nu1) - mu0 * s_prey**2 - mu1
-
-
-#font = {'family' : 'normal',
-#        'weight' : 'normal',
-#        'size'   : 14}
-
-#plt.rc('font', **font)
-
-
-#plt.scatter(numbs, (taun_fitness_II(numbs)))
-#plt.show()
 
 C, N, P = sol[:,-2]
-#print(C, N, P, "CNP2", strat_finder(sol[:,-2], params_ext))
-#y = np.array([C, N, P])
-#numbs = np.linspace(0,1,500)
-#taun_fitness_II = lambda s_prey: \
-#    epsn * cmax * s_prey * C / (s_prey * C + nu0) - cp * opt_taup_find(y, s_prey, params_ext) * s_prey * P / (
-#                opt_taup_find(y, s_prey, params_ext) * s_prey * N + nu1) - mu0 * s_prey**2 - mu1
-
-#plt.figure()
-#plt.scatter(numbs, (taun_fitness_II(numbs)))
-#plt.show()
-
-#plt.figure()
-#plt.scatter(numbs, opt_taup_find(y, numbs, params_ext))
-#print(opt_taup_find(y, numbs, params_ext), "taup", params_ext)
-#plt.show()
 
 
 plt.figure()
@@ -166,31 +123,6 @@ plt.legend(loc = 'center left')
 plt.savefig('Strategy_Intersection.png')
 
 
-#print(strat[0,1:])
-
-#plt.figure()
-#plt.plot(tim, sol_3[1,:], label = 'Dynamic prey biomass', color = 'Green')
-#plt.plot(tim, sol_3[2,:], label = 'Static predator biomass', color = 'Red')
-
-#plt.title("Dynamic prey, static predator")
-#plt.xlabel("Months")
-#plt.ylabel("g/m^3")
-#plt.legend(loc = 'upper left')
-
-#plt.savefig("Indsvingning_dynprey.png")
-
-#plt.figure()
-#plt.plot(tim, sol_4[1,:], label = 'Static prey biomass', linestyle = '-.', color = 'Green')
-#plt.plot(tim, sol_4[2,:], label = 'Dynamic predator biomass', linestyle = '-.', color = 'Red')
-
-#plt.title("Static prey, dynamic predator")
-#plt.xlabel("Months")
-#plt.ylabel("g/m^3")
-#plt.legend(loc = 'upper left')
-
-#plt.savefig("Indsvingning_mixed.png")
-
-
 dynamic_equilibria = np.zeros((one_dim_its, 3))
 dynamic_equilibria_stack = np.copy(dynamic_equilibria)
 
@@ -219,7 +151,6 @@ print(np.linalg.eig(jac_3)[0], "Jac3")
 
 
 list_of_cbars = np.linspace(base-total_range, base, one_dim_its)
-#print(list_of_cbars)
 parms_list = [params_ext]*one_dim_its
 equilibria = np.zeros((one_dim_its, 3))
 eigen_values = np.zeros((one_dim_its, 4))
@@ -258,8 +189,6 @@ for i in range(one_dim_its):
     optimal_strategies_stack[i,1] = tp_s
     dynamic_equilibria_stack[i] = x_ext_stack
 
-#    optimal_prey[i] = x_prey
-#    optimal_pred[i] = x_pred
     flows[i,0:3] = an_sol.flux_calculator(x_ext[0], x_ext[1], x_ext[2], tc, tp, params_ext).reshape((3,))
     flows[i, 3:] = an_sol.flux_calculator(equilibria[i,0], equilibria[i,1], equilibria[i,2], 1, 1, params_ext).reshape((3,))
 
@@ -269,15 +198,8 @@ for i in range(one_dim_its):
     jac1 = jacobian_calculator(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x_ext, h)
     jac1[np.isnan(jac1)] = 0
 
-#    jac2 = jacobian_calculator(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x_prey, h)
-#    jac2[np.isnan(jac2)] = 0
-#    jac3 = jacobian_calculator(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x_pred, h)
-#    jac3[np.isnan(jac3)] = 0
-
     eigen_values[i, 0] = max(np.linalg.eig(jac0)[0])
     eigen_values[i, 1] = max(np.linalg.eig(jac1)[0])
-#    eigen_values[i, 2] = max(np.linalg.eig(jac2)[0])
-#    eigen_values[i, 3] = max(np.linalg.eig(jac3)[0])
 
 equilibria = equilibria[::-1]
 dynamic_equilibria = dynamic_equilibria[::-1]
@@ -289,16 +211,7 @@ optimal_strategies = optimal_strategies[::-1]
 
 opponent_strats = np.linspace(0.01,1,100)
 
-#test_func = lambda s_prey: - cp * 0.78* s_prey * P / (0.78 * s_prey * N + nu1) - mu1 + epsn * cmax * s_prey * C / (s_prey * C + nu0) #
-
-
-#print("wut", opt_taun_analytical(dynamic_equilibria[-1], opponent_strats, 100, 0.7, 0.54545454545))
-
-#plt.figure()
-#plt.plot(opponent_strats,test_func(opponent_strats))
-#plt.show()
 print(epsn, params_ext['nu0'], mass_vector[2])
-#taun_data = opt_taun_analytical(sol[-1], opponent_strats, mass_vector[2], epsn, params_ext['nu0'])
 
 equilibria = np.log(equilibria)
 dynamic_equilibria = np.log(dynamic_equilibria)
@@ -307,20 +220,12 @@ optimal_prey = np.log(optimal_prey)
 optimal_pred = np.log(optimal_pred)
 
 
-plt.figure()
-#plt.plot(list_of_cbars, equilibria[:,0])
-plt.plot(list_of_cbars, equilibria[:,1], label = 'Static consumer')
-#plt.plot(list_of_cbars, equilibria[:,2], label = 'Static predator')
-#plt.savefig('Bifurcation_plot.png')
 
-#plt.figure()
-#plt.plot(list_of_cbars, equilibria[:,0])
-#plt.plot(list_of_cbars, dynamic_equilibria[:, 0])
+plt.figure()
+plt.plot(list_of_cbars, equilibria[:,1], label = 'Static consumer')
 plt.plot(list_of_cbars, dynamic_equilibria[:, 1], label = 'Nash consumer')
-#plt.plot(list_of_cbars, dynamic_equilibria[:, 2], label = 'Nash predator')
 
 plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 1], label = 'Stackelberg consumer')
-#plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 2], label = 'Stackelberg predator')
 
 plt.xlabel('Maximmal resource biomass in $m_p/m^3$')
 plt.ylabel('Log consumer biomass in $m_p/m^3$')
@@ -329,18 +234,8 @@ plt.savefig('Bifurcation_plot_dynamic.png')
 
 
 plt.figure()
-#plt.plot(list_of_cbars, equilibria[:,0])
-#plt.plot(list_of_cbars, equilibria[:,1], label = 'Static consumer')
 plt.plot(list_of_cbars, equilibria[:,2], label = 'Static predator')
-#plt.savefig('Bifurcation_plot.png')
-
-#plt.figure()
-#plt.plot(list_of_cbars, equilibria[:,0])
-#plt.plot(list_of_cbars, dynamic_equilibria[:, 0])
-#plt.plot(list_of_cbars, dynamic_equilibria[:, 1], label = 'Nash consumer')
 plt.plot(list_of_cbars, dynamic_equilibria[:, 2], label = 'Nash predator')
-
-#plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 1], label = 'Stackelberg consumer')
 plt.plot(list_of_cbars, dynamic_equilibria_stack[:, 2], label = 'Stackelberg predator')
 
 plt.xlabel('Maximal resource biomass in $m_p/m^3$')
@@ -349,27 +244,9 @@ plt.legend(loc  = 'upper left')
 plt.savefig('Bifurcation_plot_dynamic_predator.png')
 
 
-
-
-#plt.figure()
-#plt.plot(list_of_cbars, equilibria[:,0])
-#plt.plot(list_of_cbars, optimal_prey[:, 0])
-#plt.plot(list_of_cbars, optimal_prey[:, 1])
-#plt.plot(list_of_cbars, optimal_prey[:, 2])
-#plt.savefig('Bifurcation_plot_dynamic_prey.png')
-
-#plt.figure()
-#plt.plot(list_of_cbars, equilibria[:,0])
-#plt.plot(list_of_cbars, optimal_pred[:, 0])
-#plt.plot(list_of_cbars, optimal_pred[:, 1])
-#plt.plot(list_of_cbars, optimal_pred[:, 2])
-#plt.savefig('Bifurcation_plot_dynamic_pred.png')
-
 plt.figure()
 plt.plot(list_of_cbars, np.exp(eigen_values[:,0]), label = 'Static model')
 plt.plot(list_of_cbars, np.exp(eigen_values[:,1]), label = 'Nash model')
-#plt.plot(list_of_cbars, np.exp(eigen_values[:,2]), label = 'Dynamic prey')
-#plt.plot(list_of_cbars, np.exp(eigen_values[:,3]), label ='Dynamic predator')
 plt.ylabel('Exp of dominating eigenvalue')
 plt.xlabel("Max resource in $m_p/m^3$")
 plt.legend(loc ='upper left')
@@ -400,18 +277,6 @@ plt.xlabel("$m_p/(m^3)$")
 plt.legend(loc = 'upper right')
 
 plt.savefig("Strategies.png")
-#print(equilibria[:,1]/equilibria[:,2])
-#print(optimal_strategies)
-#print(opt_taup_find(np.exp(dynamic_equilibria[-1]), np.linspace(0,1,100), params_ext))
-
-
-#sol = np.log(sol)
-#print(nash_eq_find(np.exp(dynamic_equilibria[-1]), params_ext), "Nash Eq")
-#taunx, taupx = nash_eq_find(np.exp(sol[-1]), params_ext)
-
-#print(opt_taup_find(np.exp(dynamic_equilibria[-1]),opt_taun_analytical(np.exp(dynamic_equilibria[-1]),taupx, 100, 0.7, 0.5454545454),
-#                    params_ext))
-
 
 plt.figure()
 plt.title("Functional response of consumer C at steady state")
@@ -431,4 +296,3 @@ plt.xlabel("Prey")
 plt.ylabel("Functional response")
 plt.legend(loc = 'center left')
 plt.savefig("Functional_response_predator_resource_load.png")
-print(params_ext['cmax'], params_ext['cp'])

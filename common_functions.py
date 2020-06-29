@@ -189,11 +189,6 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
     else:
         taun = np.array([1])
         taup = np.array([1])
-    if taun <= 0.00001:
-        list_of_nums = np.linspace(0.000001, 1, 100)
- #       print(np.max(taun_fitness_II_linear(1, list_of_nums, params, y[0], y[1], y[2])), np.max(taun_fitness_II_linear(0.5, list_of_nums, params, y[0], y[1], y[2])))
-
-    #print(opt_taun_analytical(y, opt_taup_find(y, taun, params)[0], 100, params['eps'], params['nu0']), taun, taup)
     return taun, taup
 
 
@@ -377,6 +372,7 @@ def taun_fitness_II(s_prey, params, R, C, P):
                 opt_taup_find(y, s_prey, params) * s_prey * C + params['nu1']) - params['mu1']
 
 
+
 def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
     C, N, P = y[0], y[1], y[2]
     taun = 1
@@ -481,5 +477,117 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
     return tauc
 
 
-def gilliam_nash(y, s, eps, gamma):
-    pass
+def prey_gill(s_prey, s_pred, params, y):
+    R, C, P = y[0], y[1], y[2]
+
+    return -(params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['mu0'] * s_prey - params['mu1']) / (
+                params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + params['nu1']))
+
+def pred_gill(s_prey, s_pred, params, y):
+    R, C, P = y[0], y[1], y[2]
+
+    return -(params['cp'] * params['eps'] * s_prey * s_pred * C / (C * s_prey * s_pred + params['nu1']) - params['phi1']) / (
+                params['phi0'] * s_pred ** 2)
+
+def prey_GM(s_prey, s_pred, params, y):
+    R, C, P = y[0], y[1], y[2]
+
+    return -((params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['mu0'] * s_prey - params['mu1']) - (
+            params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + params['nu1'])))
+
+def pred_GM(s_prey, s_pred, params, y):
+    R, C, P = y[0], y[1], y[2]
+    return -((params['cp'] * params['eps'] * s_prey * s_pred * C / (C * s_prey * s_pred + params['nu1']) - params['phi1']) - (
+            params['phi0'] * s_pred ** 2))
+
+def chooser_payoff(choice = 'Gill'):
+    if choice is 'Gill':
+        return [prey_gill, pred_gill]
+    else:
+        return [prey_GM, pred_GM]
+
+def gilliam_nash(y, params, strat = np.array([0.5, 0.5])):
+    s_prey, s_pred = strat[0], strat[1]
+
+    der_prey = num_derr(prey_gill(s_prey, s_pred, params, y), s_prey, 0.00000001)
+    der_pred = num_derr(prey_gill(s_prey, s_pred, params, y), s_pred, 0.00000001)
+
+    return der_prey, der_pred
+
+def gilliam_nash_find(y, params, strat = np.array([0.5, 0.5])):
+    gill_strat = optm.root(lambda x: gilliam_nash(y, params, strat = x), x0=strat).x
+    gill_strat[gill_strat < 0] = 0
+    gill_strat[gill_strat > 1] = 1
+
+    return gill_strat
+
+def combined_strat_finder(params, y, stackelberg = False, x0=np.array([0.5, 0.5]), Gill = False):
+    error = 1
+    its = 0
+    s = np.zeros(2)
+    strat = np.copy(x0)
+
+    if stackelberg is True and Gill is True:
+        #prey_gill, pred_gill
+        while error > 10**(-8):
+
+            s[0] = optm.minimize(lambda x: prey_gill(x, optm.minimize(lambda w: pred_gill(x, w, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x, params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
+            s[1] = optm.minimize(lambda w: pred_gill(s[0], w, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
+
+            error = max(np.abs(s - strat))
+            strat = np.copy(s)
+
+            #print(error, its, )
+            its += 1
+            if its > 100:
+                error = 0
+                strat = np.array([1, 1])
+                print("AAAAAAAAAAAAAH")
+
+    elif stackelberg is True and Gill is False:
+
+        while error > 10**(-8) and its < 100:
+
+            s[0] = optm.minimize(lambda x: prey_gill(x, opt_taup_find(y, x, params)[0], params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
+            s[1] = optm.minimize(lambda x: pred_gill(s[0], x, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
+
+            error = max(np.abs(s - strat))
+            strat = np.copy(s)
+
+            #print(error, its, )
+            its += 1
+        if its > 100:
+            taup, tauc = strat_finder(y, params)
+            strat[0] = tauc
+            strat[1] = taup
+    elif stackelberg is False and Gill is False:
+        error = 1
+        its = 0
+        s = np.zeros(2)
+        while error > 10 ** (-8):
+            s[0] = optm.minimize(lambda x: prey_GM(x, strat[1], params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
+            s[1] = optm.minimize(lambda x: pred_GM(strat[0], x, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
+            error = max(np.abs(s - strat))
+            strat = np.copy(s)
+            #print(error, its, )
+            its += 1
+            if its > 100:
+                error = 0
+                tauc, taup = nash_eq_find(y, params)
+                strat[0] = tauc
+                strat[1] = taup
+    elif stackelberg is False and Gill is True:
+        error = 1
+        its = 0
+        s = np.zeros(2)
+        while error > 10 ** (-8):
+            s[0] = optm.minimize(lambda x: prey_gill(x, strat[1], params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
+            s[1] = optm.minimize(lambda x: pred_gill(strat[0], x, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
+            error = max(np.abs(s - strat))
+            strat = np.copy(s)
+            #print(error, its, )
+            its += 1
+            if its > 100:
+                error = 0
+                strat = np.array([1, 1]) #gilliam_nash_find(y, params)
+    return strat[0], strat[1]

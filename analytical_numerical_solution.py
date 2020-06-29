@@ -7,7 +7,7 @@ import sys
 from io import StringIO
 from scipy import optimize as optm
 import scipy.integrate
-from multiprocessing import Pool
+import copy as copy
 from common_functions import *
 
 def opt_taup_find_old(y, taun, params):
@@ -58,12 +58,6 @@ def opt_taun_find_dumb_dumb(y, params, dummy):
     if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
 
         max_cands = linsp[np.argmax(taun_fitness_II(linsp))]
-#        t0 = taun_fitness_II(0.001)
-#        t1 = taun_fitness_II(1)
-#        if t0 > t1:
-#            max_cands = 0.001
-#        else:
-#            max_cands = 1
 
     else:
         maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
@@ -116,22 +110,62 @@ def opt_taun_find_unstable(y, params, taun_old):
 #    print(val, "val", opt_taup_find(y, val, params))
     return val
 
-def optimal_behavior_trajectories(y, params, opt_prey = True, opt_pred = True, nash = True):
+
+
+
+def optimal_behavior_trajectories_version_2(y, params, strat = np.array([0.5, 0.5]), nash = True, Gill = False):
     C = y[0]
     N = y[1]
     P = y[2]
+
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
-    if nash is True:
-        taun, taup = nash_eq_find(y, params) #strat_finder(y, params, opt_prey = opt_prey, opt_pred = opt_pred)
-    else:
-        taun, taup = strat_finder(y, params, opt_prey = opt_prey, opt_pred = opt_pred)
+    taun, taup = combined_strat_finder(params, y, stackelberg = (not nash), x0=strat, Gill = Gill)
+
     Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+nu0)
     Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp/(taup*taun*N + nu1) - - mu0*taun**2 - mu1)
-    Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1) #Square cost removed
-#    print(taun, taup, cbar, Ndot)
-#    print(Cdot, Ndot, Pdot,epsn*cmax*taun*C/(taun*C+cmax) - taup * taun*P*cp*1/(taup*taun*N + cp) - mu0*taun - mu1)
+    Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1)
 
     return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
+
+
+def continuation_slope_ODE(f, x0, params, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False):
+    params_int = copy.deepcopy(params)
+    params_int[type] += h
+    up = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+    params_int[type] -= 2*h
+    down = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+    #add strategy support
+    return (up-down)/(2*h)
+
+def continuation_strat(params, x, type = 'resource', h = 0.000005, nash = True, x0 = np.array([0.5, 0.5])):
+    params_int = copy.deepcopy(params)
+    params_int[type] += h
+    up = combined_strat_finder(params, x, stackelberg=not nash, x0=x0)
+    pass
+
+def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False):
+    interval = np.linspace(start, stop, its)
+    step_size = interval[1]-interval[0]
+    params_int = copy.deepcopy(params)
+    big_old_values = np.zeros((its, *x0.shape))
+    dire = 1
+
+    all_strats = np.zeros((its, 2))
+    if reverse is True:
+        interval = interval[::-1]
+        dire = - 1
+    params_int[type] = interval[0]
+    big_old_values[0] = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+    all_strats[0] = combined_strat_finder(params, big_old_values[0], stackelberg = (not nash), x0 = strat, Gill = Gill)
+
+    for i in range(1,its):
+        print(i, params_int)
+        params_int[type] = interval[i]
+        cont_guess = big_old_values[i-1] + dire*step_size*continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash)
+        big_old_values[i] = optm.root(lambda y: f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill), x0=cont_guess, method='hybr').x
+        all_strats[i] = combined_strat_finder(params, big_old_values[i], stackelberg = not nash, x0 = strat, Gill = Gill)
+
+    return big_old_values, all_strats
 
 
 def heatmap_plotter(data, title, image_name, ext):
