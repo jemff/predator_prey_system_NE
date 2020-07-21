@@ -167,9 +167,7 @@ for i in range(one_dim_its):
     params_ext['resource'] = base - i*step_size #- step_size * i
     #parms_list[i]['resource'] = list_of_cbars[i]
     equilibria[i] = static_eq_calc(params_ext)
-#    print(params_ext['resource'], "Resourcemax", i, base)
 
- #   print(x_ext, params_ext['resource'])
     sol_temp = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext), x0=x_ext, method='hybr')
     x_ext = sol_temp.x
     sol_temp_stackelberg = optm.root(lambda y: an_sol.optimal_behavior_trajectories(y, params_ext, nash = False), x0=x_ext_stack, method='hybr')

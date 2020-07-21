@@ -113,13 +113,14 @@ def opt_taun_find_unstable(y, params, taun_old):
 
 
 
-def optimal_behavior_trajectories_version_2(y, params, strat = np.array([0.5, 0.5]), nash = True, Gill = False):
+def optimal_behavior_trajectories_version_2(y, params, strat = None, nash = True, Gill = False):
     C = y[0]
     N = y[1]
     P = y[2]
 
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
-    taun, taup = combined_strat_finder(params, y, stackelberg = (not nash), x0=strat, Gill = Gill)
+
+    taun, taup = combined_strat_finder(params, y, stackelberg = (not nash), x0 = strat, Gill = Gill)
 
     Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+nu0)
     Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp/(taup*taun*N + nu1) - - mu0*taun**2 - mu1)
@@ -128,13 +129,20 @@ def optimal_behavior_trajectories_version_2(y, params, strat = np.array([0.5, 0.
     return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
 
 
-def continuation_slope_ODE(f, x0, params, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False):
-    params_int = copy.deepcopy(params)
-    params_int[type] += h
-    up = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
-    params_int[type] -= 2*h
-    down = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
-    #add strategy support
+def continuation_slope_ODE(f, x0, params, strat = None, type = 'resource', h = 0.000001, nash = True, Gill = False, root = True):
+    params_interior = copy.deepcopy(params)
+    if root is True:
+        params_interior[type] += h
+        up = optm.root(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+        params_interior[type] -= 2*h
+        down = optm.root(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+    else:
+        params_interior[type] += h
+        up = optm.least_squares(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill), x0=x0, bounds = (0, np.inf)).x
+        params_interior[type] -= 2*h
+        down = optm.least_squares(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill), x0=x0, bounds = (0, np.inf)).x
+
+
     return (up-down)/(2*h)
 
 def continuation_strat(params, x, type = 'resource', h = 0.000005, nash = True, x0 = np.array([0.5, 0.5])):
@@ -143,7 +151,7 @@ def continuation_strat(params, x, type = 'resource', h = 0.000005, nash = True, 
     up = combined_strat_finder(params, x, stackelberg=not nash, x0=x0)
     pass
 
-def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False):
+def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False, root = True):
     interval = np.linspace(start, stop, its)
     step_size = interval[1]-interval[0]
     params_int = copy.deepcopy(params)
@@ -155,15 +163,37 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
         interval = interval[::-1]
         dire = - 1
     params_int[type] = interval[0]
-    big_old_values[0] = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+    if root is True:
+        big_old_values[0] = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+    else:
+        big_old_values[0] = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, bounds = (0, np.inf)).x
+
     all_strats[0] = combined_strat_finder(params, big_old_values[0], stackelberg = (not nash), x0 = strat, Gill = Gill)
 
     for i in range(1,its):
-        print(i, params_int)
+        #print(i, params_int)
         params_int[type] = interval[i]
-        cont_guess = big_old_values[i-1] + dire*step_size*continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash)
-        big_old_values[i] = optm.root(lambda y: f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill), x0=cont_guess, method='hybr').x
-        all_strats[i] = combined_strat_finder(params, big_old_values[i], stackelberg = not nash, x0 = strat, Gill = Gill)
+        cont_guess = big_old_values[i-1] + dire*step_size*continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root)
+        cont_guess[cont_guess < 0] = 0
+        if root is True:
+            optm_obj = optm.root(lambda y: f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill), x0=cont_guess, method='hybr')
+            x_temp = optm_obj.x
+            if optm_obj.success is False:
+                x_temp = cont_guess #big_old_values[i-1]
+                print("Oh man", Gill, nash)
+        else:
+            optm_obj = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, bounds = (0, np.inf))
+            print(optm_obj)
+            x_temp = optm_obj.x
+
+        big_old_values[i] = x_temp
+        print(x_temp-cont_guess, x_temp-big_old_values[i-1], optm_obj.success, type, reverse)
+        all_strats[i] = combined_strat_finder(params, big_old_values[i], stackelberg = not nash, x0 = all_strats[i-1], Gill = Gill)
+
+    if reverse is True:
+        big_old_values = big_old_values[::-1]
+        all_strats = all_strats[::-1]
+
 
     return big_old_values, all_strats
 
@@ -210,10 +240,17 @@ if manual_max is True:
 def flux_calculator(R, C, P, taun, taup, params):
 
     flux_01 = params['cmax']*C * taun * R / (taun * R + params['nu0'])
-    flux_12 = C * taup * taun * P * params['cp']* 1 / (taup * taun * C + params['nu1'])
+    flux_12 = C * taup * taun * P * params['cp'] * 1 / (taup * taun * C + params['nu1'])
     flux_2n = P*params['phi0'] * taup** 2
 
     return np.array([flux_01, flux_12, flux_2n])
+
+def frp_calc(R, C, P, taun, taup, params):
+
+    frp_C = params['cmax']* taun * R / (taun * R + params['nu0'])
+    frp_P = C * taup * taun * params['cp'] * 1 / (taup * taun * C + params['nu1'])
+
+    return np.array([frp_C, frp_P])
 
 its = 0
 if its > 0:

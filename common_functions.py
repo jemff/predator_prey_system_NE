@@ -221,6 +221,52 @@ def working_nash_eq_find(y, params, opt_prey = True, opt_pred = True):
 
     return taun, taup
 
+def opt_taun_find_Gill(y, params, taun_old):
+    C, N, P = y[0], y[1], y[2]
+    cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
+
+    taun_fitness_II = lambda s_prey: epsn * cmax * s_prey * C / (s_prey * C + nu0) - cp * taup(s_prey) * s_prey * P / (
+                    taup(s_prey) * s_prey * N + nu1) - mu0 * s_prey**2 - mu1
+    p_term = lambda s_prey : (N*s_prey*taup(s_prey)+nu1)
+
+    taup = lambda s_prey: opt_taup_find(y, s_prey, params) #cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey)) -cp * (np.sqrt(eps / (phi0 * s_prey * N)) - 1 / (N * s_prey))
+
+    taup_prime = lambda s_prey: (gill_opt_taup(y, s_prey+0.00001, params)-gill_opt_taup(y, s_prey-0.00001, params))/(2*0.00001) #cp*(1/(N*s_prey**2) - 1/2*np.sqrt(eps/(phi0*N))*s_prey**(-3/2))
+
+    taun_fitness_II_d = lambda s_prey: epsn*(cmax*nu0)*C/((s_prey*C+nu0)**2) - 2*s_prey*mu0 \
+                                            - (nu1*cp)*P*((s_prey*taup_prime(s_prey)+taup(s_prey))/(p_term(s_prey))**2)
+
+    #Eeeeh. Not worth it.
+    linsp = np.linspace(0.001 , 1, 100)
+    comparison_numbs = taun_fitness_II_d(linsp)
+    alt_max_cand = linsp[np.argmax(taun_fitness_II(linsp))]
+
+    #print(comparison_numbs)
+    if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
+        t0 = taun_fitness_II(0.001)
+        t1 = taun_fitness_II(1)
+        if t0 > t1:
+            max_cands = 0.001
+        else:
+            max_cands = 1
+      #  print("dong dong")
+
+    else:
+        maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
+        mini_mill = linsp[np.where(comparison_numbs < 0)[0][0]]
+        max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
+        #print("ding ding", taun_fitness_II(max_cands), np.max(taun_fitness_II(linsp)))
+   # print(num_derr(taun_fitness_II, max_cands, 0.0001), taun_fitness_II_d(max_cands), max_cands)
+   # print(np.max(taun_fitness_II(linsp)), taun_fitness_II(max_cands))
+    if taun_fitness_II(max_cands)<=taun_fitness_II(alt_max_cand):
+        max_cands = alt_max_cand
+        #print("Ding dong sling slong")
+    #if taun_fitness_II(max_cands)<0:
+        #print(taun_fitness_II(0.001), taun_fitness_II(1), taun_fitness_II(alt_max_cand), taun_fitness_II(max_cands))
+    #print(taun_fitness_II(taun_old), taun_fitness_II(max_cands))
+
+    return max_cands
+
 
 def nash_eq_find_old(y, params, opt_prey = True, opt_pred = True):
     if opt_pred and opt_prey is True:
@@ -270,10 +316,12 @@ def opt_taup_find(y, s_prey, params):
     if max(x.shape) > 1:
         x = np.squeeze(x)
         x[x > 1] = 1
+        x[np.isnan(x)] = 0.78 #eeeh
         #print("Alarm!")
     else:
         if x[0] > 1:
             x[0] = 1
+        x[np.isnan(x)] = 0.78
     x[x<0] = 0
     return x
 
@@ -320,25 +368,34 @@ def opt_taun_find(y, params, taun_old):
     #if taun_fitness_II(max_cands)<0:
         #print(taun_fitness_II(0.001), taun_fitness_II(1), taun_fitness_II(alt_max_cand), taun_fitness_II(max_cands))
     #print(taun_fitness_II(taun_old), taun_fitness_II(max_cands))
-    return max_cands #max_cands_two[np.argmax(taun_fitness_II(max_cands_two))]
 
+    return max_cands
+
+import semi_impl_eul as num_sol
 def static_eq_calc(params):
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
-    phitild = phi0+phi1
+    phitild = phi0 + phi1
     mutild = mu0 + mu1
-    C_star = phitild*nu1/(eps*cp-phitild)
-    gam = nu0-cbar+(cmax/lam)*C_star
-#    print(gam, gam**2, 4*cbar*nu0, np.sqrt(gam**2+4*cbar*nu0))
-    R_star = (-gam + np.sqrt(gam**2+4*cbar*nu0))/2
-    P_star = (epsn * C_star*R_star*cmax/(R_star+nu0)-mutild*C_star)/(cp*C_star/(C_star+nu1))
 
-#    print(cp*C_star/(C_star+nu1), epsn * C_star*R_star*cmax/(R_star+nu0))
-    if P_star<0 or C_star<0:
-        R_star = nu0*mutild/(epsn*cmax+mutild)
-        C_star = lam*(cbar-R_star)*(R_star+nu0)/(cmax*R_star)
+    C_star = phitild * nu1 / (eps * cp - phitild)
+
+    gam = nu0 - cbar + (cmax / lam) * C_star
+
+    R_star = (-gam + np.sqrt(gam ** 2 + 4 * cbar * nu0)) / 2
+
+    P_star = (epsn * C_star * R_star * cmax / (R_star + nu0) - mutild * C_star) / (cp * C_star / (C_star + nu1))
+
+    #    print(cp*C_star/(C_star+nu1), epsn * C_star*R_star*cmax/(R_star+nu0))
+    if P_star < 0 or C_star < 0:
+        R_star = mutild*nu0/(eps*cmax)*((1-mutild/(eps*cmax))**(-1)) #nu0 * mutild / (epsn * cmax + mutild)
+        C_star = lam * (cbar - R_star) * (R_star + nu0) / (cmax * R_star)
         P_star = 0
-    if C_star<0:
+
+        print(num_sol.optimal_behavior_trajectories(0, np.array([R_star, C_star, P_star]), params)[0:3],
+              np.array([R_star, C_star, P_star]))
+
+    if C_star < 0:
         R_star = cbar
         P_star = 0
         C_star = 0
@@ -371,6 +428,14 @@ def taun_fitness_II(s_prey, params, R, C, P):
     return params['epsn'] * params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['cp'] * opt_taup_find(y, s_prey, params) * s_prey * P / (
                 opt_taup_find(y, s_prey, params) * s_prey * C + params['nu1']) - params['mu1']
 
+
+
+def strat_finder_Gill(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
+
+    taun = min(max(opt_taun_find(y, params, taun_old), 0), 1)
+    taup = min(max(opt_taup_find(y, taun, params), 0), 1)
+
+    return taun, taup
 
 
 def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
@@ -521,73 +586,114 @@ def gilliam_nash_find(y, params, strat = np.array([0.5, 0.5])):
 
     return gill_strat
 
-def combined_strat_finder(params, y, stackelberg = False, x0=np.array([0.5, 0.5]), Gill = False):
+def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False):
     error = 1
     its = 0
     s = np.zeros(2)
     strat = np.copy(x0)
 
     if stackelberg is True and Gill is True:
-        #prey_gill, pred_gill
-        while error > 10**(-8):
+        s[0] = optm.minimize(lambda x: prey_gill(x, gill_opt_taup(y, x, params), params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
+        s[1] = gill_opt_taup(y, s[0], params)
 
-            s[0] = optm.minimize(lambda x: prey_gill(x, optm.minimize(lambda w: pred_gill(x, w, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x, params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
-            s[1] = optm.minimize(lambda w: pred_gill(s[0], w, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
-
-            error = max(np.abs(s - strat))
-            strat = np.copy(s)
-
-            #print(error, its, )
-            its += 1
-            if its > 100:
-                error = 0
-                strat = np.array([1, 1])
-                print("AAAAAAAAAAAAAH")
+        strat = np.copy(s)
 
     elif stackelberg is True and Gill is False:
+        tauc, taup = strat_finder(y, params)
+        strat[0] = tauc
+        strat[1] = taup
 
-        while error > 10**(-8) and its < 100:
-
-            s[0] = optm.minimize(lambda x: prey_gill(x, opt_taup_find(y, x, params)[0], params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
-            s[1] = optm.minimize(lambda x: pred_gill(s[0], x, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
-
-            error = max(np.abs(s - strat))
-            strat = np.copy(s)
-
-            #print(error, its, )
-            its += 1
-        if its > 100:
-            taup, tauc = strat_finder(y, params)
-            strat[0] = tauc
-            strat[1] = taup
     elif stackelberg is False and Gill is False:
-        error = 1
-        its = 0
         s = np.zeros(2)
         while error > 10 ** (-8):
             s[0] = optm.minimize(lambda x: prey_GM(x, strat[1], params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
             s[1] = optm.minimize(lambda x: pred_GM(strat[0], x, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
             error = max(np.abs(s - strat))
             strat = np.copy(s)
-            #print(error, its, )
+
             its += 1
             if its > 100:
                 error = 0
                 tauc, taup = nash_eq_find(y, params)
                 strat[0] = tauc
                 strat[1] = taup
+
     elif stackelberg is False and Gill is True:
-        error = 1
-        its = 0
         s = np.zeros(2)
         while error > 10 ** (-8):
             s[0] = optm.minimize(lambda x: prey_gill(x, strat[1], params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
             s[1] = optm.minimize(lambda x: pred_gill(strat[0], x, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
             error = max(np.abs(s - strat))
             strat = np.copy(s)
-            #print(error, its, )
             its += 1
-            if its > 100:
+            if its > 300:
                 error = 0
-                strat = np.array([1, 1]) #gilliam_nash_find(y, params)
+                #print(s, x0)
+                strat[0], strat[1] = s #nash_eq_find_Gill(y, params, strat[0])
+
+
     return strat[0], strat[1]
+
+def gill_opt_taup(y, tauc, params):
+    k_1 = params['eps']*y[1]*tauc*params['cp']/params['phi0']
+    k_2 = y[1]*tauc
+    k_3 = params['nu1']
+    k_4 = params['phi1']/params['phi0']
+
+    x = (k_4 * np.sqrt((k_1 * k_3 ** 2 * (k_1 + 8 * k_2 * k_4)) / (
+                k_2 ** 2 * (k_2 * k_4 - k_1) ** 2)) * k_2 ** 2 - 4 * k_3 * k_4 * k_2 - k_1 * np.sqrt(
+        (k_1 * k_3 ** 2 * (k_1 + 8 * k_2 * k_4)) / (k_2 ** 2 * (k_2 * k_4 - k_1) ** 2)) * k_2 + k_1 * k_3) / (
+                    4 * k_2 * (k_2 * k_4 - k_1))
+
+    x = np.array([x])
+    if max(x.shape) > 1:
+        x = np.squeeze(x)
+        x[x > 1] = 1
+        x[np.isnan(x)] = 0.78 #eeeh
+        #print("Alarm!")
+    else:
+        if x[0] > 1:
+            x[0] = 1
+        x[np.isnan(x)] = 0.78
+    x[x<0] = 0
+
+    return x
+
+def opt_taun_analytical_Gill(y, s_pred, params):
+
+    k_1 = y[0] * params['cmax'] * params['eps']
+    k_2 = y[0]
+    k_3 = params['nu0']
+    k_4 = params['mu1']
+    k_5 = s_pred * y[2] * params['cp']
+    k_6 = s_pred * y[1]
+
+
+    x = (k_4 * np.sqrt((k_1 * k_3 ** 2 * k_4 * (k_2 - k_6)) / (
+                k_4 * k_2 ** 2 - k_1 * k_2 + k_1 * k_6) ** 2) * k_2 ** 2 - k_3 * k_4 * k_2 - k_1 * np.sqrt(
+        (k_1 * k_3 ** 2 * k_4 * (k_2 - k_6)) / (
+                    k_4 * k_2 ** 2 - k_1 * k_2 + k_1 * k_6) ** 2) * k_2 + k_1 * k_6 * np.sqrt(
+        (k_1 * k_3 ** 2 * k_4 * (k_2 - k_6)) / (k_4 * k_2 ** 2 - k_1 * k_2 + k_1 * k_6) ** 2)) / (
+                    k_4 * k_2 ** 2 - k_1 * k_2 + k_1 * k_6)
+
+    x = np.array([x])
+    if max(x.shape) > 1:
+        x = np.squeeze(x)
+        x[x > 1] = 1
+        x[np.isnan(x)] = 0.78 #eeeh
+        #print("Alarm!")
+    else:
+        if x[0] > 1:
+            x[0] = 1
+        x[np.isnan(x)] = 0.78
+    x[x<0] = 0
+
+    return x
+
+
+def nash_eq_find_Gill(y, params, s_prey0):
+#    print(opt_taun_analytical_Gill(y, gill_opt_taup(y, 0.5, params)[0], params), s_prey0)
+    taun = optm.root(lambda x: opt_taun_analytical_Gill(y, gill_opt_taup(y, x, params)[0], params)[0]-x, x0 = 1).x
+    taup = gill_opt_taup(y, taun, params)
+
+    return taun, taup

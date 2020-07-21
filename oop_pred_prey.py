@@ -99,16 +99,18 @@ class PredatorPrey:
             R_star = nu0 * mutild / (epsn * cmax + mutild)
             C_star = lam * (cbar - R_star) * (R_star + nu0) / (cmax * R_star)
             P_star = 0
+
         if C_star < 0:
             R_star = cbar
             P_star = 0
             C_star = 0
+
         return np.array([R_star, C_star, P_star])
 
 
     def optimal_behavior_trajectories(self):
         C = self.population[0]
-        N = self.population[1]H
+        N = self.population[1]
         P = self.population[2]
         taun = self.strat[0]
         taup = self.strat[1]

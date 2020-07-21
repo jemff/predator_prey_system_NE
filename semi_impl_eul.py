@@ -93,8 +93,10 @@ def optimal_behavior_trajectories(t, y, params, seasons = False, taun=1, taup=1)
         Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+nu0)
     flux_c_to_n = N*taun*C/(taun*C+nu0)
     flux_n_to_p = N*taup * taun*P*cp*1/(taup*taun*N + nu1)  # Now these values are calculated twice..
+
     Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp*1/(taup*taun*N + nu1) - mu0*taun**2 - mu1)
     Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1) #Square cost removed
+
     return np.array([Cdot, Ndot, Pdot, flux_c_to_n, flux_n_to_p])
 
 
