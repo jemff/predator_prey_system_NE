@@ -163,7 +163,7 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
 
     if opt_pred is True and opt_prey is True:
         testing_numbers = np.linspace(0.0000005, 1, 100)
-        x0 = testing_numbers[(opt_taun_analytical(y, opt_taup_find(y, testing_numbers, params), 100, params['eps'], params['nu0']) - testing_numbers) < 0]
+        x0 = testing_numbers[(opt_taun_analytical(y, opt_taup_find(y, testing_numbers, params), 100, params['eps'], params['nu0'], params = params) - testing_numbers) < 0]
         if len(x0)<1:
             taun, taup = working_nash_eq_find(y, params, opt_prey = True, opt_pred = True)
         else:
@@ -171,9 +171,10 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
             #optimal_strategy = optm.fixed_point(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0']), x0 = x0)
 
 
-            optimal_strategy = optm.root_scalar(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'])-strat, bracket = [0.0000005, x0], xtol = 10**(-7))
+            optimal_strategy = optm.root_scalar(lambda strat:  opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'], params = params)-strat, bracket = [0.0000005, x0], xtol = 10**(-7))
             taun = np.array([optimal_strategy.root])
             taup = opt_taup_find(y, taun, params)
+            #print("Here I am", optimal_strategy)
             #print(optimal_strategy.root, taun, taup)
         if (np.isnan(taup) and taun != 0):
             testing_numbers = np.linspace(0.000001, 1, 1000)
@@ -522,7 +523,7 @@ def jacobian_calculator(f, x, h):
 
     return jac
 
-def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
+def opt_taun_analytical_old(y, taup, s, eps, gamma, params = None):
     R, C, P = y[0], y[1], y[2]
 
     eta = (taup*P*s**(3/4)*(eps*R)**(-1))**(1/2)
@@ -539,6 +540,36 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
 #        tauc = taun_linear(y, taup, params)
 
     tauc[tauc<0] = 0.000001
+
+    return tauc
+
+def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
+
+    a=eps*y[0]*15
+    b=y[0]
+    c=gamma
+    d=s**(3/4)*15*taup*y[2]
+    e=y[1]*taup
+
+    tauc = ((b**2*d-a*e**2)*np.sqrt(a*c**2*(d*(b-e)**2)/(b**2*d-a*e**2)**2)+a*c*e-b*c*d)/(b**2*d-a*e**2)
+    tauc_alt = opt_taun_analytical_old(y, taup, s, eps, gamma)
+
+
+
+    tauc = np.array([tauc])
+    if len(tauc.shape)>1:
+        tauc = np.squeeze(tauc)
+
+
+    tauc[tauc>1] = 1
+#    if len(tauc[tauc<0]) != 0:
+#        tauc = taun_linear(y, taup, params)
+
+    tauc[tauc<0] = 0.000001
+
+    if max(np.array([taup]).shape)<2:
+        tauc = optm.minimize(lambda x: prey_GM(x, taup, params, y), x0 = np.array([0.5]), bounds = [(0.00000001, 1)]).x
+        print(tauc, tauc_alt)
     return tauc
 
 
@@ -614,10 +645,11 @@ def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False)
             its += 1
             if its > 100:
                 error = 0
-                tauc, taup = nash_eq_find(y, params)
+                tauc, taup = working_nash_eq_find(y, params)
                 strat[0] = tauc
                 strat[1] = taup
-
+        if its<100:
+            print(working_nash_eq_find(y, params), strat, y)
     elif stackelberg is False and Gill is True:
         s = np.zeros(2)
         while error > 10 ** (-8):

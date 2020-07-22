@@ -188,6 +188,8 @@ if settings['plot'] is True:
     func_static_values_res = an_sol.frp_calc(static_values_res[:, 0], static_values_res[:, 1], static_values_res[:, 2], ones, ones, params_ext)
 
 
+
+
     fig, ax = plt.subplots(6, 1, sharex=True, gridspec_kw={'height_ratios': [1, 0.5, 1, 0.5, 1, 0.5]})
     fig.set_size_inches((8/2.54, 24/2.54))
 
@@ -196,42 +198,42 @@ if settings['plot'] is True:
     ax[-1].set_xlabel('Carrying capacity $m_p/m^3$')
 
 
-    ax[0].plot(x_axis_res, nash_GM_res[:, 0], color = 'Red', linestyle = '-')
+    ax[0].plot(x_axis_res, nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
 #    ax[0].plot(x_axis_res, nash_Gill_res[:, 0], color = 'Blue', linestyle = '-')
 #    ax[0].plot(x_axis_res, stack_GM_res[:, 0], color = 'Purple', linestyle = 'dotted')
-    ax[0].plot(x_axis_res, static_values_res[:,0], color = 'Green', linestyle = '-.')
+    ax[0].plot(x_axis_res, static_values_res[:,0], color = tableau20[0], linestyle = '-.')
 
     ax[1].set_ylabel('$\\tau_c$')
 
-    ax[1].plot(x_axis_res, strat_nash_GM_res[:, 0], color = 'Red', linestyle = '-')
+    ax[1].plot(x_axis_res, strat_nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
 #    ax[1].plot(x_axis_res, strat_nash_Gill_res[:, 0], color = 'Blue', linestyle = '-')
 #    ax[1].plot(x_axis_res, strat_stack_GM_res[:, 0], color = 'Purple', linestyle = 'dotted')
 
     ax[2].set_ylabel('Consumer, $m_p/m^3$')
 
 #    ax[2].plot(x_axis_res, nash_Gill_res[:, 1], color = 'Blue', linestyle = '-')
-    ax[2].plot(x_axis_res, nash_GM_res[:, 1], color = 'Red', linestyle = '-')
+    ax[2].plot(x_axis_res, nash_GM_res[:, 1], color =  tableau20[6], linestyle = '-')
 #    ax[2].plot(x_axis_res, stack_GM_res[:, 1], color = 'Purple', linestyle = 'dotted')
-    ax[2].plot(x_axis_res, static_values_res[:,1], color = 'Green', linestyle = '-.')
+    ax[2].plot(x_axis_res, static_values_res[:,1], color = tableau20[0], linestyle = '-.')
 
     ax[3].set_ylabel('$\\tau_p \cdot \\tau_c$')
 
-    ax[3].plot(x_axis_res, strat_nash_GM_res[:, 1]*strat_nash_GM_res[:, 0], color = 'Red', linestyle = '-')
+    ax[3].plot(x_axis_res, strat_nash_GM_res[:, 1]*strat_nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
 #    ax[3].plot(x_axis_res, strat_nash_Gill_res[:, 1]*strat_nash_GM_res[:, 0], color = 'Blue', linestyle = '-')
 #    ax[3].plot(x_axis_res, strat_stack_GM_res[:, 1]*strat_nash_GM_res[:, 0])
 
     ax[4].set_ylabel('Predator, $m_p/m^3$')
 
 #    ax[4].plot(x_axis_res, nash_Gill_res[:, 2], color = 'Blue', linestyle = '-')
-    ax[4].plot(x_axis_res, nash_GM_res[:, 2], color = 'Red', linestyle = '-')
+    ax[4].plot(x_axis_res, nash_GM_res[:, 2], color = tableau20[6], linestyle = '-')
 #    ax[4].plot(x_axis_res, stack_GM_res[:, 2], color = 'Purple', linestyle = 'dotted')
-    ax[4].plot(x_axis_res, static_values_res[:,2], color = 'Green', linestyle = '-.')
+    ax[4].plot(x_axis_res, static_values_res[:,2], color = tableau20[0], linestyle = '-.')
 
     ax[5].set_ylabel('$\\tau_p$')
 
-    ax[5].plot(x_axis_res, strat_nash_GM_res[:, 1], color = 'Red', linestyle = '-')
+    ax[5].plot(x_axis_res, strat_nash_GM_res[:, 1], color = tableau20[6], linestyle = '-')
 #    ax[5].plot(x_axis_res, strat_nash_Gill_res[:, 1], color = 'Blue', linestyle = '-')
-#    ax[5].plot(x_axis_res, strat_stack_GM_res[:, 1], color = 'Red', linestyle = '-')
+#    ax[5].plot(x_axis_res, strat_stack_GM_res[:, 1], color = tableau20[6], linestyle = '-')
 
     fig.tight_layout()
 
@@ -245,35 +247,35 @@ if settings['plot'] is True:
     ax2[0].set_ylabel('Resource, $m_p/m^3$')
     ax2[-1].set_xlabel('Predation loss $m_p/(m^3 month)$')
 
-    ax2[0].plot(x_axis_phi0, nash_GM_phi0[:, 0], color = 'Red', linestyle = '-')
+    ax2[0].plot(x_axis_phi0, nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
 #    ax2[0].plot(x_axis_phi0, nash_Gill_phi0[:, 0], color = 'Blue', linestyle = '-')
-    ax2[0].plot(x_axis_phi0, static_values_phi0[:,0], color = 'Green', linestyle = '-.')
+    ax2[0].plot(x_axis_phi0, static_values_phi0[:,0], color = tableau20[0], linestyle = '-.')
 
     ax2[1].set_ylabel('$\\tau_c$')
 
-    ax2[1].plot(x_axis_phi0, strat_nash_GM_phi0[:, 0], color = 'Red', linestyle = '-')
+    ax2[1].plot(x_axis_phi0, strat_nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
 #    ax2[1].plot(x_axis_phi0, strat_nash_Gill_phi0[:, 0], color = 'Blue', linestyle = '-')
 
     ax2[2].set_ylabel('Consumer, $m_p/m^3$')
 
 #    ax2[2].plot(x_axis_phi0, nash_Gill_phi0[:, 1], color = 'Blue', linestyle = '-')
-    ax2[2].plot(x_axis_phi0, nash_GM_phi0[:, 1], color = 'Red', linestyle = '-')
-    ax2[2].plot(x_axis_phi0, static_values_phi0[:,1], color = 'Green', linestyle = '-.')
+    ax2[2].plot(x_axis_phi0, nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
+    ax2[2].plot(x_axis_phi0, static_values_phi0[:,1], color = tableau20[0], linestyle = '-.')
 
     ax2[3].set_ylabel('$\\tau_c \cdot \\tau_p$')
 
-    ax2[3].plot(x_axis_phi0, strat_nash_GM_phi0[:, 1]*strat_nash_GM_phi0[:, 0], color = 'Red', linestyle = '-')
+    ax2[3].plot(x_axis_phi0, strat_nash_GM_phi0[:, 1]*strat_nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
 #    ax2[3].plot(x_axis_phi0, strat_nash_Gill_phi0[:, 1]*strat_nash_Gill_phi0[:, 0], color = 'Blue', linestyle = '-')
 
     ax2[4].set_ylabel('Predator, $m_p/m^3$')
 
 #    ax2[4].plot(x_axis_phi0, nash_Gill_phi0[:, 2], color = 'Blue', linestyle = '-')
-    ax2[4].plot(x_axis_phi0, nash_GM_phi0[:, 2], color = 'Red', linestyle = '-')
-    ax2[4].plot(x_axis_phi0, static_values_phi0[:,2], color = 'Green', linestyle = '-.')
+    ax2[4].plot(x_axis_phi0, nash_GM_phi0[:, 2], color = tableau20[6], linestyle = '-')
+    ax2[4].plot(x_axis_phi0, static_values_phi0[:,2], color = tableau20[0], linestyle = '-.')
 
     ax2[5].set_ylabel('$\\tau_p$')
 
-    ax2[5].plot(x_axis_phi0, strat_nash_GM_phi0[:, 1], color = 'Red', linestyle = '-')
+    ax2[5].plot(x_axis_phi0, strat_nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
 #    ax2[5].plot(x_axis_phi0, strat_nash_Gill_phi0[:, 1], color = 'Blue', linestyle = '-')
 
     fig2.tight_layout()
@@ -286,21 +288,21 @@ if settings['plot'] is True:
 
     ax3[0].set_ylabel('Level 0 to 1')
 
-    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = 'Red', linestyle = '-')
+    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = tableau20[6], linestyle = '-')
 
 #    ax3[0].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:,0],  color = 'Blue', linestyle = '-')
 
     ax3[1].set_ylabel('Level 1 to 2')
 
-    ax3[1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1]/flux_static_values_phi0[:,1], color = 'Red', linestyle = '-')
+    ax3[1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1]/flux_static_values_phi0[:,1], color = tableau20[6], linestyle = '-')
   #  ax3[1].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 1]/flux_static_values_phi0[:,1],  color = 'Blue', linestyle = '-')
 
     ax3[2].set_ylabel('Level 2 to out')
 
-    ax3[2].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = 'Red', linestyle = '-')
+    ax3[2].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = tableau20[6], linestyle = '-')
 #    ax3[2].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:,0],  color = 'Blue', linestyle = '-')
 
-    ax[-1].set_xlabel('Predation pressure $m_p/(m^3 day)$')
+    ax3[-1].set_xlabel('Predation pressure $m_p/(m^3 day)$')
 
     fig3.tight_layout()
     plt.savefig('top_down_flux.pdf')
@@ -311,45 +313,103 @@ if settings['plot'] is True:
     #ax4[2].set_title('Ratio of flux compared to static system, bottom-up control')
 
     ax4[0].set_ylabel('Level 0 to 1')
-    ax4[0].plot(x_axis_res, flux_nash_GM_res[0]/flux_static_values_res[0], color = 'Red', linestyle = '-')
+    ax4[0].plot(x_axis_res, flux_nash_GM_res[0]/flux_static_values_res[0], color = tableau20[6], linestyle = '-')
 #    ax4[0].plot(x_axis_res, flux_nash_Gill_res[0]/flux_static_values_res[0],  color = 'Blue', linestyle = '-')
 #    ax4[0].plot(x_axis_res, flux_stack_GM_res[0]/flux_static_values_res[0], color = 'Purple', linestyle = 'dotted')
 
     ax4[1].set_ylabel('Level 1 to 2')
 
-    ax4[1].plot(x_axis_res, flux_nash_GM_res[1]/flux_static_values_res[1], color = 'Red', linestyle = '-')
+    ax4[1].plot(x_axis_res, flux_nash_GM_res[1]/flux_static_values_res[1], color = tableau20[6], linestyle = '-')
 #    ax4[1].plot(x_axis_res, flux_nash_Gill_res[1]/flux_static_values_res[1],  color = 'Blue', linestyle = '-')
 #    ax4[1].plot(x_axis_res, flux_stack_GM_res[1]/flux_static_values_res[1], color = 'Purple', linestyle = 'dotted')
 
     ax4[2].set_ylabel('Level 2 to out')
 
-    ax4[2].plot(x_axis_res, flux_nash_GM_res[2]/flux_static_values_res[2], color = 'Red', linestyle = '-')
+    ax4[2].plot(x_axis_res, flux_nash_GM_res[2]/flux_static_values_res[2], color = tableau20[6], linestyle = '-')
 #    ax4[2].plot(x_axis_res, flux_nash_Gill_res[2]/flux_static_values_res[2], color = 'Blue', linestyle = '-')
 #    ax4[2].plot(x_axis_res, flux_stack_GM_res[2]/flux_static_values_res[2], color = 'Purple', linestyle = 'dotted')
 
 
-    ax[-1].set_xlabel('Carrying capacity $m_p/m^3$')
+    ax4[-1].set_xlabel('Carrying capacity $m_p/m^3$')
 
     fig4.tight_layout()
 
     plt.savefig('bottom_up_flux.pdf')
 
     fig5, ax5 = plt.subplots(1, 1, sharey=True)
+    fig5.set_size_inches((8/2.54, 8/2.54))
 
-    ax5.plot(x_axis_res, func_nash_GM_res[0])
-    ax5.plot(x_axis_res, func_static_values_res[0])
+    ax5.plot(x_axis_res, func_nash_GM_res[0], color = tableau20[6], linestyle = '-')
+    ax5.plot(x_axis_res, func_static_values_res[0], color = tableau20[0], linestyle = '-.')
+    ax5.set_xlabel('Carrying capacity $m_p/m^3$')
 
     fig5.tight_layout()
 
     plt.savefig('functional_response_compare.pdf')
 
-    fig6, ax6 = plt.subplots(1, 1, sharey=True)
-    ax6.set_title("Plot legends")
-    ax6.axis('off')
-    ax6.plot(np.array([1]), np.array([1]) , color='Red', linestyle='-', label = 'Growth - Mortality, Nash Equilibrium')
+#    fig6, ax6 = plt.subplots(1, 1, sharey=True)
+#    ax6.set_title("Plot legends")
+#    ax6.axis('off')
+#    ax6.plot(np.array([1]), np.array([1]) , color=tableau20[6], linestyle='-', label = 'Growth - Mortality, Nash Equilibrium')
  #   ax6.plot(np.array([1]), np.array([1]), color='Blue', linestyle='-', label = 'Gilliams Rule, Nash Equilibrium')
  #   ax6.plot(np.array([1]), np.array([1]), color='Purple', linestyle='dotted', label = 'Growth - Mortality, Stackelberg Equilibrium')
-    ax6.plot(np.array([1]), np.array([1]), color='Green', linestyle='-.', label = 'Model with static behavior')
-    ax6.legend(loc='center left')
+#    ax6.plot(np.array([1]), np.array([1]), color=tableau20[0], linestyle='-.', label = 'Model with static behavior')
+#    ax6.legend(loc='center left')
 
-    plt.savefig('Legends.pdf')
+    #plt.savefig('Legends.pdf')
+
+    fidelity = 100
+
+    res_m = nash_GM_res[500,0]
+    prey_m = nash_GM_res[500,1]
+    pred_m = nash_GM_res[500, 2]
+
+    params_t = copy.deepcopy(params_ext)
+    params_t['resource'] = x_axis_res[500]
+    resource_variation = np.linspace(0.001*res_m, res_m, fidelity)
+    prey_variation = np.linspace(0.001*prey_m, prey_m, fidelity)
+    frp = np.zeros((fidelity, 2))
+    frc = np.zeros((fidelity, 2))
+
+    prey_variation = prey_variation[::-1]
+    resource_variation = resource_variation[::-1]
+    frc[0] = strat_nash_GM_res[500]
+    frp[0] = strat_nash_GM_res[500]
+
+    for i in range(1,fidelity):
+        frp[i] = combined_strat_finder(params_t, np.array([res_m, prey_variation[i], pred_m]), x0 = frp[i-1])
+        frc[i] = combined_strat_finder(params_t, np.array([resource_variation[i], prey_m, pred_m]), x0 = frc[i-1])
+
+    frp = frp[::-1]
+    frc = frc[::-1]
+    prey_variation = prey_variation[::-1]
+    resource_variation = resource_variation[::-1]
+
+    print(params_t)
+    fig6, ax6 = plt.subplots(1,1,sharex=True)
+    fig6.set_size_inches((8/2.54, 10/2.54))
+    #plt.title(
+    #    "Functional response of predator, P " + str(np.round(pred_m, 2)) + " R " + str(np.round(res_m, 2)))
+    ax6.plot(prey_variation, params_ext['cp'] * prey_variation / (prey_variation + params_ext['nu0']),
+             label="Predator functional response, non-optimal", color = tableau20[0], linestyle = '-.')
+    ax6.plot(prey_variation, params_ext['cp'] * frp[:, 0] * frp[:, 1] * prey_variation / (
+                frp[:, 0] * frp[:, 1] * prey_variation + params_ext['nu0']), color = tableau20[6], linestyle = '-',
+             label="Predator functional response, optimal")
+    ax6.set_xlabel("Prey in $m_p/m^3$")
+    ax6.set_ylabel("Functional response")
+    plt.savefig("Functional_response_predator.pdf")
+
+    fig7, ax7 = plt.subplots(1,1,sharex=True)
+    fig7.set_size_inches((8/2.54, 10/2.54))
+
+#    fig7.title(
+#        "Functional response of consumer, C " + str(np.round(prey_m, 2)) + " P " + str(np.round(pred_m, 2)))
+    ax7.plot(resource_variation, params_ext['cmax'] * resource_variation / (resource_variation + params_ext['nu0']),
+             color = tableau20[0], linestyle = '-.', label="Consumer functional response, non-optimal")
+    ax7.plot(resource_variation,
+             params_ext['cmax'] * frc[:, 0] * resource_variation / (frc[:, 0] * resource_variation + params_ext['nu0']),
+             color = tableau20[6], linestyle = '-', label="Consumer functional response, optimal") #alpha = 0.5
+    ax7.set_xlabel("Resource in $m_p/m^3$")
+    ax7.set_ylabel("Functional response")
+
+    plt.savefig("Functional_response_consumer.pdf")
