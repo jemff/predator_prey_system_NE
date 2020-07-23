@@ -230,7 +230,7 @@ if settings['plot'] is True:
     ax[4].plot(x_axis_res, static_values_res[:,2], color = tableau20[0], linestyle = '-.')
 
     ax[5].set_ylabel('$\\tau_p$')
-
+    ax[5].set_ylim((0.5, 1))
     ax[5].plot(x_axis_res, strat_nash_GM_res[:, 1], color = tableau20[6], linestyle = '-')
 #    ax[5].plot(x_axis_res, strat_nash_Gill_res[:, 1], color = 'Blue', linestyle = '-')
 #    ax[5].plot(x_axis_res, strat_stack_GM_res[:, 1], color = tableau20[6], linestyle = '-')
@@ -245,7 +245,7 @@ if settings['plot'] is True:
     #ax2[5].set_title('Population dynamics of optimal populations with top-down control')
 
     ax2[0].set_ylabel('Resource, $m_p/m^3$')
-    ax2[-1].set_xlabel('Predation loss $m_p/(m^3 month)$')
+    ax2[-1].set_xlabel('Max predation pressure $m_p/(m^3 month)$')
 
     ax2[0].plot(x_axis_phi0, nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
 #    ax2[0].plot(x_axis_phi0, nash_Gill_phi0[:, 0], color = 'Blue', linestyle = '-')
@@ -302,7 +302,7 @@ if settings['plot'] is True:
     ax3[2].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = tableau20[6], linestyle = '-')
 #    ax3[2].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:,0],  color = 'Blue', linestyle = '-')
 
-    ax3[-1].set_xlabel('Predation pressure $m_p/(m^3 day)$')
+    ax3[-1].set_xlabel('Max predation pressure $m_p/(m^3 day)$')
 
     fig3.tight_layout()
     plt.savefig('top_down_flux.pdf')
@@ -342,6 +342,7 @@ if settings['plot'] is True:
     ax5.plot(x_axis_res, func_nash_GM_res[0], color = tableau20[6], linestyle = '-')
     ax5.plot(x_axis_res, func_static_values_res[0], color = tableau20[0], linestyle = '-.')
     ax5.set_xlabel('Carrying capacity $m_p/m^3$')
+    ax5.set_ylabel("Functional response")
 
     fig5.tight_layout()
 
@@ -397,6 +398,8 @@ if settings['plot'] is True:
              label="Predator functional response, optimal")
     ax6.set_xlabel("Prey in $m_p/m^3$")
     ax6.set_ylabel("Functional response")
+    fig6.tight_layout()
+
     plt.savefig("Functional_response_predator.pdf")
 
     fig7, ax7 = plt.subplots(1,1,sharex=True)
@@ -411,5 +414,6 @@ if settings['plot'] is True:
              color = tableau20[6], linestyle = '-', label="Consumer functional response, optimal") #alpha = 0.5
     ax7.set_xlabel("Resource in $m_p/m^3$")
     ax7.set_ylabel("Functional response")
+    fig7.tight_layout()
 
     plt.savefig("Functional_response_consumer.pdf")
