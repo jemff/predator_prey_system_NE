@@ -8,10 +8,10 @@ plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 plt.rc('font', size = 10)
 # These are the "Tableau 20" colors as RGB.
-tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),
-             (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),
-             (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),
-             (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),
+tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120), 
+             (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150), 
+             (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148), 
+             (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199), 
              (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229)]
 
 # Scale the RGB values to the [0, 1] range, which is the format matplotlib accepts.
@@ -38,7 +38,7 @@ nu1 = nu[1] #nu
 
 its = 600
 
-params_ext = {'cmax': cmax, 'mu0': mu0, 'mu1': mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0': phi0, 'phi1': phi1,
+params_ext = {'cmax': cmax, 'mu0': mu0, 'mu1': mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0': phi0, 'phi1': phi1, 
               'resource': base, 'lam': lam, 'nu0': nu0, 'nu1': nu1}
 
 if settings['gen_data'] is True:
@@ -135,7 +135,7 @@ if settings['plot'] is True:
     flux_nash_Gill_phi0 = np.zeros((its, 3))
     flux_static_values_phi0 = np.zeros((its, 3))
 
-    ones = np.repeat(1,its)
+    ones = np.repeat(1, its)
 
     #    fidelity = 100
     #    resource_variation = np.linspace(sol[0, -1] * 0.01, sol[0, -1], fidelity)
@@ -160,14 +160,14 @@ if settings['plot'] is True:
         params_temp_phi0['phi0'] = x_axis_phi0[i]
         static_values_phi0[i] = static_eq_calc(params_temp_phi0)
 
-        flux_nash_GM_phi0[i] = an_sol.flux_calculator(nash_GM_res[i, 0], nash_GM_res[i, 1], nash_GM_res[i, 2],
-                                                      strat_nash_GM_res[i, 0], strat_nash_GM_res[i, 1], params_temp_phi0)
+        flux_nash_GM_phi0[i] = an_sol.flux_calculator(nash_GM_phi0[i, 0], nash_GM_phi0[i, 1], nash_GM_phi0[i, 2],
+                                                      strat_nash_GM_phi0[i, 0], strat_nash_GM_phi0[i, 1], params_temp_phi0)
 
 #        flux_nash_Gill_phi0[i] = an_sol.flux_calculator(nash_Gill_res[i, 0], nash_Gill_res[i, 1], nash_Gill_res[i, 2],
 #                                                       strat_nash_Gill_res[i, 0], strat_nash_Gill_res[i, 1],
 #                                                        params_temp_phi0)
-        flux_static_values_phi0[i] = an_sol.flux_calculator(static_values_res[i, 0], static_values_res[i, 1],
-                                                            static_values_res[i, 2], 1, 1, params_temp_phi0)
+        flux_static_values_phi0[i] = an_sol.flux_calculator(static_values_phi0[i, 0], static_values_phi0[i, 1],
+                                                            static_values_phi0[i, 2], 1, 1, params_temp_phi0)
 
         func_nash_GM_phi0[i] = an_sol.frp_calc(nash_GM_phi0[i, 0], nash_GM_phi0[i, 1], nash_GM_phi0[i, 2],
                                                strat_nash_GM_phi0[i, 0], strat_nash_GM_phi0[i, 1], params_temp_phi0)
@@ -191,7 +191,7 @@ if settings['plot'] is True:
 
 
     fig, ax = plt.subplots(6, 1, sharex=True, gridspec_kw={'height_ratios': [1, 0.5, 1, 0.5, 1, 0.5]})
-    fig.set_size_inches((8/2.54, 24/2.54))
+    fig.set_size_inches((8/2.54, 16/2.54))
 
     #ax[5].set_title('Population dynamics of optimal populations with bottom-up control')
     ax[0].set_ylabel('Resource, $m_p/m^3$')
@@ -201,7 +201,7 @@ if settings['plot'] is True:
     ax[0].plot(x_axis_res, nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
 #    ax[0].plot(x_axis_res, nash_Gill_res[:, 0], color = 'Blue', linestyle = '-')
 #    ax[0].plot(x_axis_res, stack_GM_res[:, 0], color = 'Purple', linestyle = 'dotted')
-    ax[0].plot(x_axis_res, static_values_res[:,0], color = tableau20[0], linestyle = '-.')
+    ax[0].plot(x_axis_res, static_values_res[:, 0], color = tableau20[0], linestyle = '-.')
 
     ax[1].set_ylabel('$\\tau_c$')
 
@@ -214,11 +214,12 @@ if settings['plot'] is True:
 #    ax[2].plot(x_axis_res, nash_Gill_res[:, 1], color = 'Blue', linestyle = '-')
     ax[2].plot(x_axis_res, nash_GM_res[:, 1], color =  tableau20[6], linestyle = '-')
 #    ax[2].plot(x_axis_res, stack_GM_res[:, 1], color = 'Purple', linestyle = 'dotted')
-    ax[2].plot(x_axis_res, static_values_res[:,1], color = tableau20[0], linestyle = '-.')
+    ax[2].plot(x_axis_res, static_values_res[:, 1], color = tableau20[0], linestyle = '-.')
 
-    ax[3].set_ylabel('$\\tau_p \cdot \\tau_c$')
+    ax[3].set_ylabel('$\\tau_p \cdot \\tau_c \cdot C$')
 
-    ax[3].plot(x_axis_res, strat_nash_GM_res[:, 1]*strat_nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
+    ax[3].plot(x_axis_res, strat_nash_GM_res[:, 1]*strat_nash_GM_res[:, 0]*nash_GM_res[:, 1], color = tableau20[6], linestyle = '-')
+    ax[3].set_ylim((0, 0.4))
 #    ax[3].plot(x_axis_res, strat_nash_Gill_res[:, 1]*strat_nash_GM_res[:, 0], color = 'Blue', linestyle = '-')
 #    ax[3].plot(x_axis_res, strat_stack_GM_res[:, 1]*strat_nash_GM_res[:, 0])
 
@@ -227,7 +228,7 @@ if settings['plot'] is True:
 #    ax[4].plot(x_axis_res, nash_Gill_res[:, 2], color = 'Blue', linestyle = '-')
     ax[4].plot(x_axis_res, nash_GM_res[:, 2], color = tableau20[6], linestyle = '-')
 #    ax[4].plot(x_axis_res, stack_GM_res[:, 2], color = 'Purple', linestyle = 'dotted')
-    ax[4].plot(x_axis_res, static_values_res[:,2], color = tableau20[0], linestyle = '-.')
+    ax[4].plot(x_axis_res, static_values_res[:, 2], color = tableau20[0], linestyle = '-.')
 
     ax[5].set_ylabel('$\\tau_p$')
     ax[5].set_ylim((0.5, 1))
@@ -240,16 +241,16 @@ if settings['plot'] is True:
     plt.savefig('bottom_up_pop_dyn.pdf')
 
     fig2, ax2 = plt.subplots(6, 1, sharex=True, gridspec_kw={'height_ratios': [1, 0.5, 1, 0.5, 1, 0.5]})
-    fig2.set_size_inches((8/2.54, 24/2.54))
+    fig2.set_size_inches((8/2.54, 16/2.54))
 
     #ax2[5].set_title('Population dynamics of optimal populations with top-down control')
 
     ax2[0].set_ylabel('Resource, $m_p/m^3$')
-    ax2[-1].set_xlabel('Max predation pressure $m_p/(m^3 month)$')
+    ax2[-1].set_xlabel('Top predation pressure $m_p/(m^3 month)$')
 
     ax2[0].plot(x_axis_phi0, nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
 #    ax2[0].plot(x_axis_phi0, nash_Gill_phi0[:, 0], color = 'Blue', linestyle = '-')
-    ax2[0].plot(x_axis_phi0, static_values_phi0[:,0], color = tableau20[0], linestyle = '-.')
+    ax2[0].plot(x_axis_phi0, static_values_phi0[:, 0], color = tableau20[0], linestyle = '-.')
 
     ax2[1].set_ylabel('$\\tau_c$')
 
@@ -260,18 +261,18 @@ if settings['plot'] is True:
 
 #    ax2[2].plot(x_axis_phi0, nash_Gill_phi0[:, 1], color = 'Blue', linestyle = '-')
     ax2[2].plot(x_axis_phi0, nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
-    ax2[2].plot(x_axis_phi0, static_values_phi0[:,1], color = tableau20[0], linestyle = '-.')
+    ax2[2].plot(x_axis_phi0, static_values_phi0[:, 1], color = tableau20[0], linestyle = '-.')
 
-    ax2[3].set_ylabel('$\\tau_c \cdot \\tau_p$')
+    ax2[3].set_ylabel('$\\tau_c \cdot \\tau_p \cdot C$')
 
-    ax2[3].plot(x_axis_phi0, strat_nash_GM_phi0[:, 1]*strat_nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
+    ax2[3].plot(x_axis_phi0, strat_nash_GM_phi0[:, 1]*strat_nash_GM_phi0[:, 0]*nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
 #    ax2[3].plot(x_axis_phi0, strat_nash_Gill_phi0[:, 1]*strat_nash_Gill_phi0[:, 0], color = 'Blue', linestyle = '-')
 
     ax2[4].set_ylabel('Predator, $m_p/m^3$')
 
 #    ax2[4].plot(x_axis_phi0, nash_Gill_phi0[:, 2], color = 'Blue', linestyle = '-')
     ax2[4].plot(x_axis_phi0, nash_GM_phi0[:, 2], color = tableau20[6], linestyle = '-')
-    ax2[4].plot(x_axis_phi0, static_values_phi0[:,2], color = tableau20[0], linestyle = '-.')
+    ax2[4].plot(x_axis_phi0, static_values_phi0[:, 2], color = tableau20[0], linestyle = '-.')
 
     ax2[5].set_ylabel('$\\tau_p$')
 
@@ -282,34 +283,34 @@ if settings['plot'] is True:
     plt.savefig('top_down_pop_dyn.pdf')
 
     fig3, ax3 = plt.subplots(3, 1, sharex=True)
-    fig3.set_size_inches((8/2.54, 14/2.54))
+    fig3.set_size_inches((8/2.54, 12/2.54))
 
     #ax3[2].set_title('Ratio of flux compared to static system, top-down control')
 
     ax3[0].set_ylabel('Level 0 to 1')
 
-    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = tableau20[6], linestyle = '-')
+    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:, 0], color = tableau20[6], linestyle = '-')
 
-#    ax3[0].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:,0],  color = 'Blue', linestyle = '-')
+#    ax3[0].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:, 0],  color = 'Blue', linestyle = '-')
 
     ax3[1].set_ylabel('Level 1 to 2')
 
-    ax3[1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1]/flux_static_values_phi0[:,1], color = tableau20[6], linestyle = '-')
-  #  ax3[1].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 1]/flux_static_values_phi0[:,1],  color = 'Blue', linestyle = '-')
+    ax3[1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1]/flux_static_values_phi0[:, 1], color = tableau20[6], linestyle = '-')
+  #  ax3[1].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 1]/flux_static_values_phi0[:, 1],  color = 'Blue', linestyle = '-')
 
     ax3[2].set_ylabel('Level 2 to out')
 
-    ax3[2].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = tableau20[6], linestyle = '-')
-#    ax3[2].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:,0],  color = 'Blue', linestyle = '-')
+    ax3[2].plot(x_axis_phi0, flux_nash_GM_phi0[:, 2]/flux_static_values_phi0[:, 2], color = tableau20[6], linestyle = '-')
+#    ax3[2].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:, 0],  color = 'Blue', linestyle = '-')
 
-    ax3[-1].set_xlabel('Max predation pressure $m_p/(m^3 day)$')
+    ax3[-1].set_xlabel('Top predation pressure $m_p/(m^3 day)$')
 
     fig3.tight_layout()
     plt.savefig('top_down_flux.pdf')
 
 
     fig4, ax4 = plt.subplots(3, 1, sharex=True)
-    fig4.set_size_inches((8/2.54, 14/2.54))
+    fig4.set_size_inches((8/2.54, 12/2.54))
     #ax4[2].set_title('Ratio of flux compared to static system, bottom-up control')
 
     ax4[0].set_ylabel('Level 0 to 1')
@@ -351,7 +352,7 @@ if settings['plot'] is True:
 #    fig6, ax6 = plt.subplots(1, 1, sharey=True)
 #    ax6.set_title("Plot legends")
 #    ax6.axis('off')
-#    ax6.plot(np.array([1]), np.array([1]) , color=tableau20[6], linestyle='-', label = 'Growth - Mortality, Nash Equilibrium')
+#    ax6.plot(np.array([1]), np.array([1]), color=tableau20[6], linestyle='-', label = 'Growth - Mortality, Nash Equilibrium')
  #   ax6.plot(np.array([1]), np.array([1]), color='Blue', linestyle='-', label = 'Gilliams Rule, Nash Equilibrium')
  #   ax6.plot(np.array([1]), np.array([1]), color='Purple', linestyle='dotted', label = 'Growth - Mortality, Stackelberg Equilibrium')
 #    ax6.plot(np.array([1]), np.array([1]), color=tableau20[0], linestyle='-.', label = 'Model with static behavior')
@@ -361,8 +362,8 @@ if settings['plot'] is True:
 
     fidelity = 100
 
-    res_m = nash_GM_res[500,0]
-    prey_m = nash_GM_res[500,1]
+    res_m = nash_GM_res[500, 0]
+    prey_m = nash_GM_res[500, 1]
     pred_m = nash_GM_res[500, 2]
 
     params_t = copy.deepcopy(params_ext)
@@ -377,7 +378,7 @@ if settings['plot'] is True:
     frc[0] = strat_nash_GM_res[500]
     frp[0] = strat_nash_GM_res[500]
 
-    for i in range(1,fidelity):
+    for i in range(1, fidelity):
         frp[i] = combined_strat_finder(params_t, np.array([res_m, prey_variation[i], pred_m]), x0 = frp[i-1])
         frc[i] = combined_strat_finder(params_t, np.array([resource_variation[i], prey_m, pred_m]), x0 = frc[i-1])
 
@@ -386,15 +387,14 @@ if settings['plot'] is True:
     prey_variation = prey_variation[::-1]
     resource_variation = resource_variation[::-1]
 
-    print(params_t)
-    fig6, ax6 = plt.subplots(1,1,sharex=True)
-    fig6.set_size_inches((8/2.54, 10/2.54))
+    fig6, ax6 = plt.subplots(1, 1, sharex=True)
+    fig6.set_size_inches((8/2.54, 8/2.54))
     #plt.title(
     #    "Functional response of predator, P " + str(np.round(pred_m, 2)) + " R " + str(np.round(res_m, 2)))
     ax6.plot(prey_variation, params_ext['cp'] * prey_variation / (prey_variation + params_ext['nu0']),
              label="Predator functional response, non-optimal", color = tableau20[0], linestyle = '-.')
     ax6.plot(prey_variation, params_ext['cp'] * frp[:, 0] * frp[:, 1] * prey_variation / (
-                frp[:, 0] * frp[:, 1] * prey_variation + params_ext['nu0']), color = tableau20[6], linestyle = '-',
+                frp[:, 0] * frp[:, 1] * prey_variation + params_ext['nu0']), color = tableau20[6], linestyle = '-', 
              label="Predator functional response, optimal")
     ax6.set_xlabel("Prey in $m_p/m^3$")
     ax6.set_ylabel("Functional response")
@@ -402,15 +402,15 @@ if settings['plot'] is True:
 
     plt.savefig("Functional_response_predator.pdf")
 
-    fig7, ax7 = plt.subplots(1,1,sharex=True)
-    fig7.set_size_inches((8/2.54, 10/2.54))
+    fig7, ax7 = plt.subplots(1, 1, sharex=True)
+    fig7.set_size_inches((8/2.54, 8/2.54))
 
 #    fig7.title(
 #        "Functional response of consumer, C " + str(np.round(prey_m, 2)) + " P " + str(np.round(pred_m, 2)))
     ax7.plot(resource_variation, params_ext['cmax'] * resource_variation / (resource_variation + params_ext['nu0']),
              color = tableau20[0], linestyle = '-.', label="Consumer functional response, non-optimal")
     ax7.plot(resource_variation,
-             params_ext['cmax'] * frc[:, 0] * resource_variation / (frc[:, 0] * resource_variation + params_ext['nu0']),
+             params_ext['cmax'] * frc[:, 0] * resource_variation / (frc[:, 0] * resource_variation + params_ext['nu0']), 
              color = tableau20[6], linestyle = '-', label="Consumer functional response, optimal") #alpha = 0.5
     ax7.set_xlabel("Resource in $m_p/m^3$")
     ax7.set_ylabel("Functional response")

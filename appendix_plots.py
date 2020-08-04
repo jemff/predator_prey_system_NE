@@ -8,10 +8,10 @@ plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 plt.rc('font', size = 10)
 # These are the "Tableau 20" colors as RGB.
-tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),
-             (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150),
-             (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148),
-             (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199),
+tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120), 
+             (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150), 
+             (148, 103, 189), (197, 176, 213), (140, 86, 75), (196, 156, 148), 
+             (227, 119, 194), (247, 182, 210), (127, 127, 127), (199, 199, 199), 
              (188, 189, 34), (219, 219, 141), (23, 190, 207), (158, 218, 229)]
 
 # Scale the RGB values to the [0, 1] range, which is the format matplotlib accepts.
@@ -19,7 +19,7 @@ for i in range(len(tableau20)):
     r, g, b = tableau20[i]
     tableau20[i] = (r / 255., g / 255., b / 255.)
 
-settings = {'gen_data': True, 'plot': True}
+settings = {'gen_data': False, 'plot': True}
 
 mass_vector = np.array([1, 1, 100])
 
@@ -38,7 +38,7 @@ nu1 = nu[1] #nu
 
 its = 600
 
-params_ext = {'cmax': cmax, 'mu0': mu0, 'mu1': mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0': phi0, 'phi1': phi1,
+params_ext = {'cmax': cmax, 'mu0': mu0, 'mu1': mu1, 'eps': eps, 'epsn': epsn, 'cp': cp, 'phi0': phi0, 'phi1': phi1, 
               'resource': base, 'lam': lam, 'nu0': nu0, 'nu1': nu1}
 
 if settings['gen_data'] is True:
@@ -57,7 +57,7 @@ if settings['gen_data'] is True:
     stack_Gill_res, strat_stack_Gill_res = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2, init, params_ext, start, stop, its, reverse = reverse, Gill = True, nash = False, root = False)
 
     start = 0.6*phi0
-    stop = 1.2*phi0
+    stop = 1.1*phi0
     x_axis_phi0 = np.linspace(start, stop, its)
 
     nash_GM_phi0, strat_nash_GM_phi0 = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2, init, params_ext, start, stop, its, reverse = reverse, type = 'phi0')
@@ -135,7 +135,7 @@ if settings['plot'] is True:
     flux_nash_Gill_phi0 = np.zeros((its, 3))
     flux_static_values_phi0 = np.zeros((its, 3))
 
-    ones = np.repeat(1,its)
+    ones = np.repeat(1, its)
 
     params_temp_res = copy.deepcopy(params_ext)
     params_temp_phi0 = copy.deepcopy(params_ext)
@@ -145,29 +145,49 @@ if settings['plot'] is True:
     func_static_values_phi0 = np.zeros((its, 2))
 
     for i in range(its):
+        #params_temp_phi0['phi0'] = x_axis_phi0[i]
+        #static_values_phi0[i] = static_eq_calc(params_temp_phi0)
+
+        #flux_nash_GM_phi0[i] = an_sol.flux_calculator(nash_GM_phi0[i, 0], nash_GM_phi0[i, 1], nash_GM_phi0[i, 2],
+        #                                              strat_nash_GM_phi0[i, 0], strat_nash_GM_phi0[i, 1], params_temp_phi0)
+
+        #flux_nash_Gill_phi0[i] = an_sol.flux_calculator(nash_Gill_phi0[i, 0], nash_Gill_phi0[i, 1], nash_Gill_phi0[i, 2],
+        #                                               strat_nash_Gill_phi0[i, 0], strat_nash_Gill_phi0[i, 1],
+        #                                                params_temp_phi0)
+        #flux_static_values_phi0[i] = an_sol.flux_calculator(static_values_phi0[i, 0], static_values_phi0[i, 1],
+        #                                                    static_values_phi0[i, 2], 1, 1, params_temp_phi0)
+
+        #func_nash_GM_phi0[i] = an_sol.frp_calc(nash_GM_phi0[i, 0], nash_GM_phi0[i, 1], nash_GM_phi0[i, 2],
+        #                                       strat_nash_GM_phi0[i, 0], strat_nash_GM_phi0[i, 1], params_temp_phi0)
+        #func_nash_Gill_phi0[i] = an_sol.frp_calc(nash_Gill_phi0[i, 0], nash_Gill_phi0[i, 1], nash_Gill_phi0[i, 2],
+        #                                         strat_nash_Gill_phi0[i, 0], strat_nash_Gill_phi0[i, 1],
+        #                                         params_temp_phi0)
+        #func_static_values_phi0[i] = an_sol.frp_calc(static_values_phi0[i, 0], static_values_phi0[i, 1],
+        #                                             static_values_phi0[i, 2], 1, 1, params_temp_phi0)
+
         params_temp_res['resource'] = x_axis_res[i]
         static_values_res[i] = static_eq_calc(params_temp_res)
 
         params_temp_phi0['phi0'] = x_axis_phi0[i]
         static_values_phi0[i] = static_eq_calc(params_temp_phi0)
 
-        flux_nash_GM_phi0[i] = an_sol.flux_calculator(nash_GM_res[i, 0], nash_GM_res[i, 1], nash_GM_res[i, 2],
-                                                      strat_nash_GM_res[i, 0], strat_nash_GM_res[i, 1], params_temp_phi0)
+        flux_nash_GM_phi0[i] = an_sol.flux_calculator(nash_GM_phi0[i, 0], nash_GM_phi0[i, 1], nash_GM_phi0[i, 2],
+                                                      strat_nash_GM_phi0[i, 0], strat_nash_GM_phi0[i, 1],
+                                                      params_temp_phi0)
 
         flux_nash_Gill_phi0[i] = an_sol.flux_calculator(nash_Gill_res[i, 0], nash_Gill_res[i, 1], nash_Gill_res[i, 2],
-                                                       strat_nash_Gill_res[i, 0], strat_nash_Gill_res[i, 1],
-                                                        params_temp_phi0)
-        flux_static_values_phi0[i] = an_sol.flux_calculator(static_values_res[i, 0], static_values_res[i, 1],
-                                                            static_values_res[i, 2], 1, 1, params_temp_phi0)
+                                                               strat_nash_Gill_res[i, 0], strat_nash_Gill_res[i, 1],
+                                                                params_temp_phi0)
+        flux_static_values_phi0[i] = an_sol.flux_calculator(static_values_phi0[i, 0], static_values_phi0[i, 1],
+                                                            static_values_phi0[i, 2], 1, 1, params_temp_phi0)
 
         func_nash_GM_phi0[i] = an_sol.frp_calc(nash_GM_phi0[i, 0], nash_GM_phi0[i, 1], nash_GM_phi0[i, 2],
                                                strat_nash_GM_phi0[i, 0], strat_nash_GM_phi0[i, 1], params_temp_phi0)
         func_nash_Gill_phi0[i] = an_sol.frp_calc(nash_Gill_phi0[i, 0], nash_Gill_phi0[i, 1], nash_Gill_phi0[i, 2],
-                                                 strat_nash_Gill_phi0[i, 0], strat_nash_Gill_phi0[i, 1],
-                                                 params_temp_phi0)
+                                                        strat_nash_Gill_phi0[i, 0], strat_nash_Gill_phi0[i, 1],
+                                                         params_temp_phi0)
         func_static_values_phi0[i] = an_sol.frp_calc(static_values_phi0[i, 0], static_values_phi0[i, 1],
                                                      static_values_phi0[i, 2], 1, 1, params_temp_phi0)
-
 
     flux_nash_GM_res = an_sol.flux_calculator(nash_GM_res[:, 0], nash_GM_res[:, 1], nash_GM_res[:, 2], strat_nash_GM_res[:, 0], strat_nash_GM_res[:, 1], params_ext)
     flux_nash_Gill_res = an_sol.flux_calculator(nash_Gill_res[:, 0], nash_Gill_res[:, 1], nash_Gill_res[:, 2], strat_nash_Gill_res[:, 0], strat_nash_Gill_res[:, 1], params_ext)
@@ -182,7 +202,7 @@ if settings['plot'] is True:
 
 
     fig, ax = plt.subplots(6, 1, sharex=True, gridspec_kw={'height_ratios': [1, 0.5, 1, 0.5, 1, 0.5]})
-    fig.set_size_inches((8/2.54, 24/2.54))
+    fig.set_size_inches((8/2.54, 16/2.54))
 
     #ax[5].set_title('Population dynamics of optimal populations with bottom-up control')
     ax[0].set_ylabel('Resource, $m_p/m^3$')
@@ -192,7 +212,7 @@ if settings['plot'] is True:
     ax[0].plot(x_axis_res, nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
     ax[0].plot(x_axis_res, nash_Gill_res[:, 0], color = tableau20[10], linestyle = '-')
     ax[0].plot(x_axis_res, stack_GM_res[:, 0], color = tableau20[8], linestyle = 'dotted')
-    ax[0].plot(x_axis_res, static_values_res[:,0], color = tableau20[0], linestyle = '-.')
+    ax[0].plot(x_axis_res, static_values_res[:, 0], color = tableau20[0], linestyle = '-.')
 
     ax[1].set_ylabel('$\\tau_c$')
 
@@ -205,9 +225,9 @@ if settings['plot'] is True:
     ax[2].plot(x_axis_res, nash_Gill_res[:, 1], color = tableau20[10], linestyle = '-')
     ax[2].plot(x_axis_res, nash_GM_res[:, 1], color =  tableau20[6], linestyle = '-')
     ax[2].plot(x_axis_res, stack_GM_res[:, 1], color = tableau20[8], linestyle = 'dotted')
-    ax[2].plot(x_axis_res, static_values_res[:,1], color = tableau20[0], linestyle = '-.')
+    ax[2].plot(x_axis_res, static_values_res[:, 1], color = tableau20[0], linestyle = '-.')
 
-    ax[3].set_ylabel('$\\tau_p \cdot \\tau_c$')
+    ax[3].set_ylabel('$\\tau_p \cdot \\tau_C \cdot C $')
 
     ax[3].plot(x_axis_res, strat_nash_GM_res[:, 1]*strat_nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
     ax[3].plot(x_axis_res, strat_nash_Gill_res[:, 1]*strat_nash_GM_res[:, 0], color = tableau20[10], linestyle = '-')
@@ -218,7 +238,7 @@ if settings['plot'] is True:
     ax[4].plot(x_axis_res, nash_Gill_res[:, 2], color = tableau20[10], linestyle = '-')
     ax[4].plot(x_axis_res, nash_GM_res[:, 2], color = tableau20[6], linestyle = '-')
     ax[4].plot(x_axis_res, stack_GM_res[:, 2], color = tableau20[8], linestyle = 'dotted')
-    ax[4].plot(x_axis_res, static_values_res[:,2], color = tableau20[0], linestyle = '-.')
+    ax[4].plot(x_axis_res, static_values_res[:, 2], color = tableau20[0], linestyle = '-.')
 
     ax[5].set_ylabel('$\\tau_p$')
     ax[5].set_ylim((0.5, 1))
@@ -231,16 +251,16 @@ if settings['plot'] is True:
     plt.savefig('bottom_up_pop_dyn_appendix.pdf')
 
     fig2, ax2 = plt.subplots(6, 1, sharex=True, gridspec_kw={'height_ratios': [1, 0.5, 1, 0.5, 1, 0.5]})
-    fig2.set_size_inches((8/2.54, 24/2.54))
+    fig2.set_size_inches((8/2.54, 16/2.54))
 
     #ax2[5].set_title('Population dynamics of optimal populations with top-down control')
 
     ax2[0].set_ylabel('Resource, $m_p/m^3$')
-    ax2[-1].set_xlabel('Max predation pressure $m_p/(m^3 month)$')
+    ax2[-1].set_xlabel('Top predation pressure $m_p/(m^3 month)$')
 
     ax2[0].plot(x_axis_phi0, nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
     ax2[0].plot(x_axis_phi0, nash_Gill_phi0[:, 0], color = tableau20[10], linestyle = '-')
-    ax2[0].plot(x_axis_phi0, static_values_phi0[:,0], color = tableau20[0], linestyle = '-.')
+    ax2[0].plot(x_axis_phi0, static_values_phi0[:, 0], color = tableau20[0], linestyle = '-.')
 
     ax2[1].set_ylabel('$\\tau_c$')
 
@@ -251,7 +271,7 @@ if settings['plot'] is True:
 
     ax2[2].plot(x_axis_phi0, nash_Gill_phi0[:, 1], color = tableau20[10], linestyle = '-')
     ax2[2].plot(x_axis_phi0, nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
-    ax2[2].plot(x_axis_phi0, static_values_phi0[:,1], color = tableau20[0], linestyle = '-.')
+    ax2[2].plot(x_axis_phi0, static_values_phi0[:, 1], color = tableau20[0], linestyle = '-.')
 
     ax2[3].set_ylabel('$\\tau_c \cdot \\tau_p$')
 
@@ -262,7 +282,7 @@ if settings['plot'] is True:
 
     ax2[4].plot(x_axis_phi0, nash_Gill_phi0[:, 2], color = tableau20[10], linestyle = '-')
     ax2[4].plot(x_axis_phi0, nash_GM_phi0[:, 2], color = tableau20[6], linestyle = '-')
-    ax2[4].plot(x_axis_phi0, static_values_phi0[:,2], color = tableau20[0], linestyle = '-.')
+    ax2[4].plot(x_axis_phi0, static_values_phi0[:, 2], color = tableau20[0], linestyle = '-.')
 
     ax2[5].set_ylabel('$\\tau_p$')
 
@@ -273,39 +293,39 @@ if settings['plot'] is True:
     plt.savefig('top_down_pop_dyn_appendix.pdf')
 
     fig3, ax3 = plt.subplots(3, 1, sharex=True)
-    fig3.set_size_inches((8/2.54, 14/2.54))
+    fig3.set_size_inches((8/2.54, 12/2.54))
 
     #ax3[2].set_title('Ratio of flux compared to static system, top-down control')
 
     ax3[0].set_ylabel('Level 0 to 1')
 
-    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = tableau20[6], linestyle = '-')
+    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:, 0], color = tableau20[6], linestyle = '-')
 
-    ax3[0].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:,0],  color = tableau20[10], linestyle = '-')
+    ax3[0].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:, 0],  color = tableau20[10], linestyle = '-')
 
     ax3[1].set_ylabel('Level 1 to 2')
 
-    ax3[1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1]/flux_static_values_phi0[:,1], color = tableau20[6], linestyle = '-')
-    ax3[1].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 1]/flux_static_values_phi0[:,1],  color = tableau20[10], linestyle = '-')
+    ax3[1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1]/flux_static_values_phi0[:, 1], color = tableau20[6], linestyle = '-')
+    ax3[1].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 1]/flux_static_values_phi0[:, 1],  color = tableau20[10], linestyle = '-')
 
     ax3[2].set_ylabel('Level 2 to out')
 
-    ax3[2].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:,0], color = tableau20[6], linestyle = '-')
-    ax3[2].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:,0],  color = tableau20[10], linestyle = '-')
+    ax3[2].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:, 2], color = tableau20[6], linestyle = '-')
+    ax3[2].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:, 2],  color = tableau20[10], linestyle = '-')
 
-    ax3[-1].set_xlabel('Max predation pressure $m_p/(m^3 day)$')
+    ax3[-1].set_xlabel('Top predation pressure $m_p/(m^3 day)$')
 
     fig3.tight_layout()
     plt.savefig('top_down_flux_appendix.pdf')
 
 
     fig4, ax4 = plt.subplots(3, 1, sharex=True)
-    fig4.set_size_inches((8/2.54, 14/2.54))
+    fig4.set_size_inches((8/2.54, 12/2.54))
     #ax4[2].set_title('Ratio of flux compared to static system, bottom-up control')
 
     ax4[0].set_ylabel('Level 0 to 1')
     ax4[0].plot(x_axis_res, flux_nash_GM_res[0]/flux_static_values_res[0], color = tableau20[6], linestyle = '-')
-    ax4[0].plot(x_axis_res, flux_nash_Gill_res[0]/flux_static_values_res[0],  color = tableau20[10], linestyle = '-')
+    ax4[0].plot(x_axis_res, flux_nash_Gill_res[0]/flux_static_values_res[0], color = tableau20[10], linestyle = '-')
     ax4[0].plot(x_axis_res, flux_stack_GM_res[0]/flux_static_values_res[0], color = tableau20[8], linestyle = 'dotted')
 
     ax4[1].set_ylabel('Level 1 to 2')
@@ -327,26 +347,15 @@ if settings['plot'] is True:
 
     plt.savefig('bottom_up_flux_appendix.pdf')
 
-    fig5, ax5 = plt.subplots(1, 1, sharey=True)
-    fig5.set_size_inches((8/2.54, 8/2.54))
-
-    ax5.plot(x_axis_res, func_nash_GM_res[0], color = tableau20[6], linestyle = '-')
-    ax5.plot(x_axis_res, func_static_values_res[0], color = tableau20[0], linestyle = '-.')
-    ax5.set_xlabel('Carrying capacity $m_p/m^3$')
-    ax5.set_ylabel("Functional response")
-
-    fig5.tight_layout()
-
-    plt.savefig('functional_response_compare_appendix.pdf')
-
     fig6, ax6 = plt.subplots(1, 1, sharey=True)
-    ax6.set_title("Plot legends")
+    fig6.set_size_inches((8/2.54, 4/2.54))
     ax6.axis('off')
     ax6.plot(np.array([1]), np.array([1]) , color=tableau20[6], linestyle='-', label = 'Growth - Mortality, Nash Equilibrium')
     ax6.plot(np.array([1]), np.array([1]), color=tableau20[10], linestyle='-', label = 'Gilliams Rule, Nash Equilibrium')
     ax6.plot(np.array([1]), np.array([1]), color=tableau20[8], linestyle='dotted', label = 'Growth - Mortality, Stackelberg Equilibrium')
     ax6.plot(np.array([1]), np.array([1]), color=tableau20[0], linestyle='-.', label = 'Model with static behavior')
     ax6.legend(loc='center left')
+    fig6.tight_layout()
 
     plt.savefig('Legends_appendix.pdf')
 
