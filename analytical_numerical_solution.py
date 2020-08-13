@@ -189,6 +189,8 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
         big_old_values[i] = x_temp
         print(x_temp-cont_guess, x_temp-big_old_values[i-1], optm_obj.success, type, reverse)
         all_strats[i] = combined_strat_finder(params, big_old_values[i], stackelberg = not nash, x0 = all_strats[i-1], Gill = Gill)
+        if type == 'phi0':
+            print(optm_obj, i)
 
     if reverse is True:
         big_old_values = big_old_values[::-1]
@@ -237,18 +239,21 @@ if manual_max is True:
 
     print("I'm done")
 
-def flux_calculator(R, C, P, taun, taup, params):
+def flux_calculator(R, C, P, taun, taup, params, linear = False):
 
     flux_01 = params['cmax']*C * taun * R / (taun * R + params['nu0'])
     flux_12 = C * taup * taun * P * params['cp'] * 1 / (taup * taun * C + params['nu1'])
-    flux_2n = P*params['phi0'] * taup** 2
+    if linear is False:
+        flux_2n = P*params['phi0'] * taup** 2
+    else:
+        flux_2n = P * params['phi0'] * taup
 
     return np.array([flux_01, flux_12, flux_2n])
 
 def frp_calc(R, C, P, taun, taup, params):
 
-    frp_C = params['cmax']* taun * R / (taun * R + params['nu0'])
-    frp_P = C * taup * taun * params['cp'] * 1 / (taup * taun * C + params['nu1'])
+    frp_C = taun * R / (taun * R + params['nu0']) #removed cmax
+    frp_P = C * taup * taun * 1 / (taup * taun * C + params['nu1']) #Removed cp
 
     return np.array([frp_C, frp_P])
 

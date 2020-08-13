@@ -194,7 +194,7 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
 
 
 
-def working_nash_eq_find(y, params, opt_prey = True, opt_pred = True):
+def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = True, opt_pred = True):
     if opt_pred and opt_prey is True:
         #testing_numbers = np.linspace(0.01, 1, 100)
         #valid_responses = opt_taun_analytical(y, testing_numbers, 100, params['eps'], params['nu0'])
@@ -206,8 +206,17 @@ def working_nash_eq_find(y, params, opt_prey = True, opt_pred = True):
         #    taup = 0
 
         #else:
-        root_obj = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'], params = params)-strat, x0 = np.array([1]))
+        root_obj = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'], params = params, taun_previous = taun_previous)-strat, x0 = taun_previous)
+#        print(root_obj.x, least_sq_obj.x)
         taun = root_obj.x
+        if root_obj.success is False:
+            least_sq_obj = optm.root(
+                lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'],
+                                                  params['nu0'], params=params, taun_previous=np.array([1])) - strat,
+                x0=np.array([1]))
+
+            taun = least_sq_obj.x
+#            print(taun_previous, root_obj.x)
         taup = opt_taup_find(y, taun, params)[0]
 #        print(taun, taup, root_obj.message, "Outer root")
 
@@ -305,7 +314,7 @@ def nash_eq_find_old(y, params, opt_prey = True, opt_pred = True):
 
     return taun, taup
 
-def opt_taup_find(y, s_prey, params):
+def opt_taup_find_quadratic(y, s_prey, params):
     #print(params)
     k = s_prey * y[1] / params['nu1']
     c = params['cp']/params['nu1']*params['eps'] * s_prey * y[1] / params['phi0']
@@ -324,6 +333,13 @@ def opt_taup_find(y, s_prey, params):
             x[0] = 1
         x[np.isnan(x)] = 0.78
     x[x<0] = 0
+    return x
+
+def opt_taup_find(y, s_prey, params, linear = False):
+    if linear is False:
+        x = opt_taup_find_quadratic(y, s_prey, params)
+    elif linear is True:
+        x = opt_taup_find_linear(y, s_prey, params)
     return x
 
 
@@ -543,7 +559,7 @@ def opt_taun_analytical_old(y, taup, s, eps, gamma, params = None):
 
     return tauc
 
-def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
+def opt_taun_analytical(y, taup, s, eps, gamma, params = None, taun_previous = np.array([0.5])):
 
     a=eps*y[0]*15
     b=y[0]
@@ -552,7 +568,7 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
     e=y[1]*taup
 
     tauc = ((b**2*d-a*e**2)*np.sqrt(a*c**2*(d*(b-e)**2)/(b**2*d-a*e**2)**2)+a*c*e-b*c*d)/(b**2*d-a*e**2)
-    tauc_alt = opt_taun_analytical_old(y, taup, s, eps, gamma)
+#    tauc_alt = opt_taun_analytical_old(y, taup, s, eps, gamma)
 
 
 
@@ -566,10 +582,14 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None):
 #        tauc = taun_linear(y, taup, params)
 
     tauc[tauc<0] = 0.000001
-
+    tauc_alt = np.copy(tauc)
+#    this = prey_GM(tauc, taup, params, y)
+#    that = prey_GM(1, taup, params, y)
+#    if that < this:
+#        tauc = np.array([1])
     if max(np.array([taup]).shape)<2:
-        tauc = optm.minimize(lambda x: prey_GM(x, taup, params, y), x0 = np.array([0.5]), bounds = [(0.00000001, 1)]).x
-        print(tauc, tauc_alt)
+        tauc = optm.minimize(lambda x: prey_GM(x, taup, params, y), x0 = taun_previous, bounds = [(0.00000001, 1)]).x #Used to be 0.5
+        #print(prey_GM(tauc, taup, params, y), prey_GM(tauc_alt, taup, params, y))
     return tauc
 
 
@@ -591,10 +611,14 @@ def prey_GM(s_prey, s_pred, params, y):
     return -((params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['mu0'] * s_prey - params['mu1']) - (
             params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + params['nu1'])))
 
-def pred_GM(s_prey, s_pred, params, y):
+def pred_GM(s_prey, s_pred, params, y, linear = False):
     R, C, P = y[0], y[1], y[2]
-    return -((params['cp'] * params['eps'] * s_prey * s_pred * C / (C * s_prey * s_pred + params['nu1']) - params['phi1']) - (
-            params['phi0'] * s_pred ** 2))
+    if linear is False:
+        return -((params['cp'] * params['eps'] * s_prey * s_pred * C / (C * s_prey * s_pred + params['nu1']) - params['phi1']) - (
+                params['phi0'] * s_pred ** 2))
+    else:
+        return -((params['cp'] * params['eps'] * s_prey * s_pred * C / (C * s_prey * s_pred + params['nu1']) - params['phi1']) - (
+                params['phi0'] * s_pred))
 
 def chooser_payoff(choice = 'Gill'):
     if choice is 'Gill':
@@ -645,11 +669,12 @@ def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False)
             its += 1
             if its > 100:
                 error = 0
-                tauc, taup = working_nash_eq_find(y, params)
+                tauc, taup = working_nash_eq_find(y, params, taun_previous = x0[0])
                 strat[0] = tauc
                 strat[1] = taup
-        if its<100:
-            print(working_nash_eq_find(y, params), strat, y)
+        #if its<100:
+        #    print(working_nash_eq_find(y, params), strat, y)
+
     elif stackelberg is False and Gill is True:
         s = np.zeros(2)
         while error > 10 ** (-8):
