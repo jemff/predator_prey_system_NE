@@ -59,15 +59,15 @@ def opt_taup_find_wazzup(y,s_prey,params): #This is the most recent derivation, 
     return x
 
 
-def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_pred = True, nash = True):
+def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_pred = True, nash = True, linear = False):
     solution = np.zeros((y0.shape[0], int(t_final / step_size)))
     strat = np.zeros((2,int(t_final / step_size)))
     t = np.zeros(int(t_final / step_size))
     solution[:, 0] = y0
-    strat[:, 0] = cf.combined_strat_finder(params, y0, stackelberg=(not nash), x0=np.array([0.5, 0.5]), Gill = False)
+    strat[:, 0] = cf.combined_strat_finder(params, y0, stackelberg=(not nash), x0=np.array([0.5, 0.5]), Gill = False, linear = linear)
     for i in range(1, int(t_final / step_size)):
         if opt_prey is True and opt_pred is True:
-            taun_best, taup_best = cf.combined_strat_finder(params, solution[:, i-1], stackelberg=(not nash), x0=strat[:, i-1], Gill = False)
+            taun_best, taup_best = cf.combined_strat_finder(params, solution[:, i-1], stackelberg=(not nash), x0=strat[:, i-1], Gill = False, linear = linear)
             print(t[i-1], "Time and strategy", taun_best)
         else:
             taun_best, taup_best = 1, 1
@@ -80,7 +80,7 @@ def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_
 
 
 
-def optimal_behavior_trajectories(t, y, params, taun = 1, taup = 1):
+def optimal_behavior_trajectories(t, y, params, taun = 1, taup = 1, linear = False):
     C = y[0]
     N = y[1]
     P = y[2]
@@ -89,7 +89,10 @@ def optimal_behavior_trajectories(t, y, params, taun = 1, taup = 1):
 
     Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+nu0)
     Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp/(taup*taun*N + nu1) - - mu0*taun**2 - mu1)
-    Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1)
+    if linear is False:
+        Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1)
+    else:
+        Pdot = P * (cp * eps * taup * taun * N / (N * taup * taun + nu1) - phi0 * taup - phi1)
 
     return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
 

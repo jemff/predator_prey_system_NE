@@ -1,7 +1,5 @@
 import numpy as np
 import scipy as scp
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import sys
 from io import StringIO
@@ -113,7 +111,7 @@ def opt_taun_find_unstable(y, params, taun_old):
 
 
 
-def optimal_behavior_trajectories_version_2(y, params, strat = None, nash = True, Gill = False):
+def optimal_behavior_trajectories_version_2(y, params, strat = None, nash = True, Gill = False, linear = False):
     C = y[0]
     N = y[1]
     P = y[2]
@@ -124,23 +122,26 @@ def optimal_behavior_trajectories_version_2(y, params, strat = None, nash = True
 
     Cdot = lam*(cbar - C) - cmax*N*taun*C/(taun*C+nu0)
     Ndot = N*(epsn*cmax*taun*C/(taun*C+nu0) - taup * taun*P*cp/(taup*taun*N + nu1) - - mu0*taun**2 - mu1)
-    Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1)
+    if linear is False:
+        Pdot = P*(cp*eps*taup*taun*N/(N*taup*taun + nu1) - phi0*taup**2 - phi1)
+    else:
+        Pdot = P * (cp * eps * taup * taun * N / (N * taup * taun + nu1) - phi0 * taup - phi1)
 
     return np.array([Cdot.squeeze(), Ndot.squeeze(), Pdot.squeeze()])
 
 
-def continuation_slope_ODE(f, x0, params, strat = None, type = 'resource', h = 0.000001, nash = True, Gill = False, root = True):
+def continuation_slope_ODE(f, x0, params, strat = None, type = 'resource', h = 0.000001, nash = True, Gill = False, root = True, linear = False):
     params_interior = copy.deepcopy(params)
     if root is True:
         params_interior[type] += h
-        up = optm.root(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+        up = optm.root(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, method='hybr').x
         params_interior[type] -= 2*h
-        down = optm.root(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+        down = optm.root(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, method='hybr').x
     else:
         params_interior[type] += h
-        up = optm.least_squares(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill), x0=x0, bounds = (0, np.inf)).x
+        up = optm.least_squares(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, bounds = (0, np.inf)).x
         params_interior[type] -= 2*h
-        down = optm.least_squares(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill), x0=x0, bounds = (0, np.inf)).x
+        down = optm.least_squares(lambda y: f(y, params_interior, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, bounds = (0, np.inf)).x
 
 
     return (up-down)/(2*h)
@@ -151,7 +152,7 @@ def continuation_strat(params, x, type = 'resource', h = 0.000005, nash = True, 
     up = combined_strat_finder(params, x, stackelberg=not nash, x0=x0)
     pass
 
-def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False, root = True):
+def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False, root = True, linear = False):
     interval = np.linspace(start, stop, its)
     step_size = interval[1]-interval[0]
     params_int = copy.deepcopy(params)
@@ -164,34 +165,36 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
         dire = - 1
     params_int[type] = interval[0]
     if root is True:
-        big_old_values[0] = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, method='hybr').x
+        big_old_values[0] = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, method='hybr').x
     else:
-        big_old_values[0] = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, bounds = (0, np.inf)).x
+        big_old_values[0] = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, bounds = (0, np.inf)).x
 
-    all_strats[0] = combined_strat_finder(params, big_old_values[0], stackelberg = (not nash), x0 = strat, Gill = Gill)
+    all_strats[0] = combined_strat_finder(params_int, big_old_values[0], stackelberg = (not nash), x0 = strat, Gill = Gill, linear = linear)
 
     for i in range(1,its):
         #print(i, params_int)
         params_int[type] = interval[i]
-        cont_guess = big_old_values[i-1] + dire*step_size*continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root)
+        cont_guess = big_old_values[i-1] + dire*step_size*continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root, linear = linear)
         cont_guess[cont_guess < 0] = 0
         if root is True:
-            optm_obj = optm.root(lambda y: f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill), x0=cont_guess, method='hybr')
+            optm_obj = optm.root(lambda y: f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear), x0=cont_guess, method='hybr')
             x_temp = optm_obj.x
             if optm_obj.success is False:
                 x_temp = cont_guess #big_old_values[i-1]
-                print("Oh man", Gill, nash)
+                #print("Oh man", Gill, nash)
         else:
-            optm_obj = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill), x0=x0, bounds = (0, np.inf))
+            optm_obj = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, bounds = (0, np.inf))
             print(optm_obj)
             x_temp = optm_obj.x
 
         big_old_values[i] = x_temp
-        print(x_temp-cont_guess, x_temp-big_old_values[i-1], optm_obj.success, type, reverse)
-        all_strats[i] = combined_strat_finder(params, big_old_values[i], stackelberg = not nash, x0 = all_strats[i-1], Gill = Gill)
-        if type == 'phi0':
-            print(optm_obj, i)
 
+        #print(x_temp-cont_guess, x_temp-big_old_values[i-1], optm_obj.success, type, reverse)
+        all_strats[i] = combined_strat_finder(params_int, big_old_values[i], stackelberg = not nash, x0 = all_strats[i-1], Gill = Gill)
+        if type is 'phi0':
+            print(x_temp, optm_obj.success, cont_guess)
+            if x_temp[-1] < 10**(-10):
+                print(params_int['phi0'])
     if reverse is True:
         big_old_values = big_old_values[::-1]
         all_strats = all_strats[::-1]
@@ -199,25 +202,6 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
 
     return big_old_values, all_strats
 
-
-def heatmap_plotter(data, title, image_name, ext):
-    plt.figure()
-    plt.title(title)
-    #    plt.colorbar(res_nums, fraction=0.046, pad=0.04)
-    plt.xlabel("Cbar, g/m^3")
-    plt.ylabel("phi0, 10^(-2) g/(m^3 * week)")
-
-    ax = plt.gca()
-    im = ax.imshow(data, cmap='Reds', extent =ext)
-
-    # create an axes on the right side of ax. The width of cax will be 5%
-    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.05)
-
-    plt.colorbar(im, cax=cax)
-
-    plt.savefig(image_name+".png", bbox_inches='tight')
 
 
 
@@ -265,7 +249,6 @@ if its > 0:
     prey_nums = np.zeros((its, its))
     pred_nums = np.zeros((its, its))
     start_point = np.copy(sol_3.x)
-    eigen_max = np.zeros((its, its))
     x_ext = np.zeros(3)
     x_prev = np.zeros(3)
 

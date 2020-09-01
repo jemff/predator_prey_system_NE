@@ -1,3 +1,5 @@
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as optm
 
@@ -194,7 +196,7 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
 
 
 
-def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = True, opt_pred = True):
+def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = True, opt_pred = True, linear = False):
     if opt_pred and opt_prey is True:
         #testing_numbers = np.linspace(0.01, 1, 100)
         #valid_responses = opt_taun_analytical(y, testing_numbers, 100, params['eps'], params['nu0'])
@@ -206,23 +208,23 @@ def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = Tr
         #    taup = 0
 
         #else:
-        root_obj = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'], params['nu0'], params = params, taun_previous = taun_previous)-strat, x0 = taun_previous)
+        root_obj = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params, linear = linear)[0], 100, params['eps'], params['nu0'], params = params, taun_previous = taun_previous)-strat, x0 = taun_previous)
 #        print(root_obj.x, least_sq_obj.x)
         taun = root_obj.x
         if root_obj.success is False:
-            least_sq_obj = optm.root(
-                lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params)[0], 100, params['eps'],
-                                                  params['nu0'], params=params, taun_previous=np.array([1])) - strat,
-                x0=np.array([1]))
+            least_sq_obj = optm.least_squares(
+                lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params, linear = linear)[0], 100, params['eps'],
+                                                  params['nu0'], params=params, taun_previous=taun_previous) - strat,
+                x0 = taun_previous)
 
             taun = least_sq_obj.x
-#            print(taun_previous, root_obj.x)
-        taup = opt_taup_find(y, taun, params)[0]
+            #print("Err2", params['phi0'], least_sq_obj)
+        taup = opt_taup_find(y, taun, params, linear = linear)[0]
 #        print(taun, taup, root_obj.message, "Outer root")
 
         if taun>1:
             taun = np.array([1])
-            taup = opt_taup_find(y, taun, params)[0]
+            taup = opt_taup_find(y, taun, params, linear = linear)[0]
 
     else: #Should add the other two cases.
         taun = 1
@@ -331,7 +333,8 @@ def opt_taup_find_quadratic(y, s_prey, params):
     else:
         if x[0] > 1:
             x[0] = 1
-        x[np.isnan(x)] = 0.78
+        x[np.isnan(x)] =  optm.minimize(lambda x: pred_GM(s_prey, x, params, y, linear = False), x0 = np.array([0.5]), bounds = [(0.00000001, 1)]).x
+
     x[x<0] = 0
     return x
 
@@ -513,7 +516,6 @@ def opt_taup_find_linear(y, taun, params): #THIS IS THE LIENAR VERSION !!!!!!!!!
 
     res[res>1] = 1
     res[res<0] = 0
-
     return res
 
 def num_derr(f, x, h):
@@ -641,7 +643,7 @@ def gilliam_nash_find(y, params, strat = np.array([0.5, 0.5])):
 
     return gill_strat
 
-def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False):
+def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False, linear = False):
     error = 1
     its = 0
     s = np.zeros(2)
@@ -662,18 +664,17 @@ def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False)
         s = np.zeros(2)
         while error > 10 ** (-8):
             s[0] = optm.minimize(lambda x: prey_GM(x, strat[1], params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
-            s[1] = optm.minimize(lambda x: pred_GM(strat[0], x, params, y), x0 = strat[1], bounds = [(0.00000001, 1)]).x
+            s[1] = optm.minimize(lambda x: pred_GM(strat[0], x, params, y, linear = linear), x0 = strat[1], bounds = [(0.00000001, 1)]).x
             error = max(np.abs(s - strat))
             strat = np.copy(s)
 
             its += 1
             if its > 100:
                 error = 0
-                tauc, taup = working_nash_eq_find(y, params, taun_previous = x0[0])
+                tauc, taup = working_nash_eq_find(y, params, taun_previous = x0[0], linear = linear)
                 strat[0] = tauc
                 strat[1] = taup
-        #if its<100:
-        #    print(working_nash_eq_find(y, params), strat, y)
+                #print("Errr", params['phi0'])
 
     elif stackelberg is False and Gill is True:
         s = np.zeros(2)
@@ -754,3 +755,64 @@ def nash_eq_find_Gill(y, params, s_prey0):
     taup = gill_opt_taup(y, taun, params)
 
     return taun, taup
+
+
+from mpl_toolkits.axes_grid1 import ImageGrid
+
+
+def heatmap_plotter(data, image_name, ext):
+#    fig, ax = plt.subplots()
+
+
+#    fig.set_size_inches((8/2.54, 8/2.54))
+#
+    #ax.set_aspect(1)
+
+#    im = ax.imshow(data, cmap='Reds', extent=ext)
+
+    # create an axes on the right side of ax. The width of cax will be 5%
+    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
+#    x0, x1 = ax.get_xlim()
+#    y0, y1 = ax.get_ylim()
+#    ax.set_xlabel("Carrying capacity ($\overline{R}$)")
+#    ax.set_ylabel("Top predation pressure ($\\xi$)")
+#
+
+    #divider = make_axes_locatable(ax)
+    #cax = divider.append_axes("right", size="5%", pad=0.05)
+
+
+    # Set up figure and image grid
+    fig = plt.figure(figsize=(16/2.54, 16/2.54))
+
+    grid = ImageGrid(fig, 111,  # as in plt.subplot(111)
+                     nrows_ncols=(1, len(data)),
+                     axes_pad=0.15,
+                     share_all=True,
+                     cbar_location="right",
+                     cbar_mode="single",
+                     cbar_size="5%",
+                     cbar_pad=0.05,
+                     )
+
+    # Add data to image grid
+    i = 0
+    for ax in grid:
+        im = ax.imshow(data[i], vmin=0, vmax=1, cmap='Reds', extent=ext, origin = 'lower')
+        x0, x1 = ax.get_xlim()
+        y0, y1 = ax.get_ylim()
+        ax.set_aspect((x1 - x0) / (y1 - y0))
+        ax.set_xlabel("Carrying capacity ($\overline{R}$)")
+        ax.set_ylabel("Top predation pressure ($\\xi$)")
+
+        i += 1
+
+    # Colorbar
+    ax.cax.colorbar(im)
+    ax.cax.toggle_label(True)
+    plt.tight_layout()    # Works, but may still require rect paramater to keep colorbar labels visible
+
+    #fig.colorbar(im, cax=cax)
+
+    plt.savefig(image_name+".pdf", bbox_inches='tight')
+

@@ -205,8 +205,8 @@ if settings['plot'] is True:
     fig.set_size_inches((8/2.54, 16/2.54))
 
     #ax[5].set_title('Population dynamics of optimal populations with bottom-up control')
-    ax[0].set_ylabel('Resource, $m_c/m^3$')
-    ax[-1].set_xlabel('Carrying capacity $(\overline{R})$ $m_c/m^3$')
+    ax[0].set_ylabel('Resource, $m_c\cdot m^{-3}$')
+    ax[-1].set_xlabel('Carrying capacity $(\overline{R})$ $m_c\cdot m^{-3}$')
 
 
     ax[0].plot(x_axis_res, nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
@@ -220,7 +220,7 @@ if settings['plot'] is True:
     ax[1].plot(x_axis_res, strat_nash_Gill_res[:, 0], color = tableau20[10], linestyle = '-')
     ax[1].plot(x_axis_res, strat_stack_GM_res[:, 0], color = tableau20[8], linestyle = 'dotted')
 
-    ax[2].set_ylabel('Consumer, $m_c/m^3$')
+    ax[2].set_ylabel('Consumer, $m_c\cdot m^{-3}$')
     
     ax[2].plot(x_axis_res, nash_Gill_res[:, 1], color = tableau20[10], linestyle = '-')
     ax[2].plot(x_axis_res, nash_GM_res[:, 1], color =  tableau20[6], linestyle = '-')
@@ -233,7 +233,7 @@ if settings['plot'] is True:
     ax[3].plot(x_axis_res, strat_nash_Gill_res[:, 1]*strat_nash_GM_res[:, 0], color = tableau20[10], linestyle = '-')
     ax[3].plot(x_axis_res, strat_stack_GM_res[:, 1]*strat_nash_GM_res[:, 0])
 
-    ax[4].set_ylabel('Predator, $m_c/m^3$')
+    ax[4].set_ylabel('Predator, $m_c\cdot m^{-3}$')
 
     ax[4].plot(x_axis_res, nash_Gill_res[:, 2], color = tableau20[10], linestyle = '-')
     ax[4].plot(x_axis_res, nash_GM_res[:, 2], color = tableau20[6], linestyle = '-')
@@ -255,7 +255,7 @@ if settings['plot'] is True:
 
     #ax2[5].set_title('Population dynamics of optimal populations with top-down control')
 
-    ax2[0].set_ylabel('Resource, $m_c/m^3$')
+    ax2[0].set_ylabel('Resource, $m_c\cdot m^{-3}$')
     ax2[-1].set_xlabel('Top predation pressure $(\\xi)$ $m_c/(m^3 month)$')
 
     ax2[0].plot(x_axis_phi0, nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
@@ -267,7 +267,7 @@ if settings['plot'] is True:
     ax2[1].plot(x_axis_phi0, strat_nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
     ax2[1].plot(x_axis_phi0, strat_nash_Gill_phi0[:, 0], color = tableau20[10], linestyle = '-')
 
-    ax2[2].set_ylabel('Consumer, $m_c/m^3$')
+    ax2[2].set_ylabel('Consumer, $m_c\cdot m^{-3}$')
 
     ax2[2].plot(x_axis_phi0, nash_Gill_phi0[:, 1], color = tableau20[10], linestyle = '-')
     ax2[2].plot(x_axis_phi0, nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
@@ -278,7 +278,7 @@ if settings['plot'] is True:
     ax2[3].plot(x_axis_phi0, strat_nash_GM_phi0[:, 1]*strat_nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
     ax2[3].plot(x_axis_phi0, strat_nash_Gill_phi0[:, 1]*strat_nash_Gill_phi0[:, 0], color = tableau20[10], linestyle = '-')
 
-    ax2[4].set_ylabel('Predator, $m_c/m^3$')
+    ax2[4].set_ylabel('Predator, $m_c\cdot m^{-3}$')
 
     ax2[4].plot(x_axis_phi0, nash_Gill_phi0[:, 2], color = tableau20[10], linestyle = '-')
     ax2[4].plot(x_axis_phi0, nash_GM_phi0[:, 2], color = tableau20[6], linestyle = '-')
@@ -313,7 +313,7 @@ if settings['plot'] is True:
     ax3[2].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:, 2], color = tableau20[6], linestyle = '-')
     ax3[2].plot(x_axis_phi0, flux_nash_Gill_phi0[:, 0]/flux_static_values_phi0[:, 2],  color = tableau20[10], linestyle = '-')
 
-    ax3[-1].set_xlabel('Top predation pressure $(\\xi)$ m_c/(m^3 day)$')
+    ax3[-1].set_xlabel('Top predation pressure $(\\xi)$ $m_c/(m^3 month)$')
 
     fig3.tight_layout()
     plt.savefig('top_down_flux_appendix.pdf')
@@ -341,7 +341,7 @@ if settings['plot'] is True:
     ax4[2].plot(x_axis_res, flux_stack_GM_res[2]/flux_static_values_res[2], color = tableau20[8], linestyle = 'dotted')
 
 
-    ax4[-1].set_xlabel('Carrying capacity $(\overline{R})$ $m_c/m^3$')
+    ax4[-1].set_xlabel('Carrying capacity $(\overline{R})$ $m_c\cdot m^{-3}$')
 
     fig4.tight_layout()
 
