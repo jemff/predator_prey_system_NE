@@ -152,7 +152,7 @@ def continuation_strat(params, x, type = 'resource', h = 0.000005, nash = True, 
     up = combined_strat_finder(params, x, stackelberg=not nash, x0=x0)
     pass
 
-def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False, root = True, linear = False):
+def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False, root = True, linear = False, verbose = True):
     interval = np.linspace(start, stop, its)
     step_size = interval[1]-interval[0]
     params_int = copy.deepcopy(params)
@@ -188,13 +188,15 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
             x_temp = optm_obj.x
 
         big_old_values[i] = x_temp
+        if verbose is True:
+            print(x_temp, optm_obj.success, cont_guess, type)
 
+        if x_temp[-1] < 10**(-10):
+            big_old_values[i] = big_old_values[i-1]
+            print(params_int['phi0'])
         #print(x_temp-cont_guess, x_temp-big_old_values[i-1], optm_obj.success, type, reverse)
         all_strats[i] = combined_strat_finder(params_int, big_old_values[i], stackelberg = not nash, x0 = all_strats[i-1], Gill = Gill)
-        if type is 'phi0':
-            print(x_temp, optm_obj.success, cont_guess)
-            if x_temp[-1] < 10**(-10):
-                print(params_int['phi0'])
+
     if reverse is True:
         big_old_values = big_old_values[::-1]
         all_strats = all_strats[::-1]

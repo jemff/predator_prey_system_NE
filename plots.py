@@ -21,12 +21,12 @@ for i in range(len(tableau20)):
     r, g, b = tableau20[i]
     tableau20[i] = (r / 255., g / 255., b / 255.)
 
-settings = {'simulation': False, 'sensitivity': False, 'func_dyn': False, 'flux_stat_func': False, 'heatmap_up': False, 'heatmap_down': False, 'plot': True, 'linear' : False}
+settings = {'simulation': False, 'sensitivity': False, 'func_dyn': True, 'flux_stat_func': True, 'heatmap_up': True, 'heatmap_down': False, 'plot': True, 'linear' : False}
 
 mass_vector = np.array([1, 1, 100])
 
 cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector, v = 0.1)
-base = 20
+base = 0.2
 phi1 = cost_of_living[1] #*2/3 #/3 #*2#/2#*5
 phi0 = cost_of_living[1] #*4/3 #The problem is that nash equiibrium does not exist in the low levels...
 eps = 0.7
@@ -38,10 +38,10 @@ mu1 = cost_of_living[0]#/3 #*2 #*2#/2#*5 #*2 #*10 #/2
 nu0 = nu[0] #nu
 nu1 = nu[1] #nu
 
-its = 600
-its_mort = 1200
-fidelity = 50
-pred_var_fid = 50
+its = 400
+its_mort = 400
+fidelity = 80
+pred_var_fid = 80
 
 print(phi0)
 
@@ -51,21 +51,23 @@ params_ext = {'cmax': cmax, 'mu0': mu0, 'mu1': mu1, 'eps': eps, 'epsn': epsn, 'c
 
 
 if settings['sensitivity'] is True:
-    init = np.array([0.9500123,  0.4147732,  0.01282899 ])
-    params_ext['resource'] = 20
+    init = 0.5*np.array([0.9500123,  0.4147732,  0.01282899 ])
+    params_ext['phi0'] = 0.8*params_ext['phi0']
     reverse = True
-    start = 5
-    stop = 30
+    start = 0.05
+    stop = 1.5
     x_axis_res = np.linspace(start, stop, its)
 
     nash_GM_res, strat_nash_GM_res = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2, init, params_ext, start, stop, its, reverse = reverse, linear = settings['linear'])
+    params_ext['phi0'] = phi0
 
-    start = 0.6*phi0
+    params_ext['resource'] = 0.2
+    start = 0.1*phi0
     stop = 3*phi0
 
     x_axis_phi0 = np.linspace(start, stop, its_mort)
 
-    nash_GM_phi0, strat_nash_GM_phi0 = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2, init, params_ext, start, stop, its_mort, reverse = reverse, type = 'phi0', linear = settings['linear'])
+    nash_GM_phi0, strat_nash_GM_phi0 = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2, init, params_ext, start, stop, its_mort, reverse = True, type = 'phi0', linear = settings['linear'])
 
     with open('bifurcation_data.npy', 'wb') as f:
         np.save(f, x_axis_res)
@@ -76,7 +78,6 @@ if settings['sensitivity'] is True:
         np.save(f, nash_GM_phi0)
         np.save(f, strat_nash_GM_phi0)
 
-       # np.save(f, results)
 
 elif settings['sensitivity'] is False:  # Split into simulation, sensisitivty, derived data, heat map.
     with open('bifurcation_data.npy', 'rb') as f:  # Save time by not generating all the data every time.
@@ -93,9 +94,12 @@ elif settings['sensitivity'] is False:  # Split into simulation, sensisitivty, d
     #     results = np.load(f)
 
 if settings['simulation'] is True:
-    params_ext['resource'] = 20
-    t_end = 5
+    params_ext['resource'] = 0.3
+    params_ext['phi0'] = 0.8*phi0
+    t_end = 24
+
     init = static_eq_calc(params_ext)*1.1
+
     init[-1] = 0.001*init[-1]    # np.array([0.5383403,  0.23503815, 0.00726976]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
     # params_ext['resource'] = 16 This si for the low-resource paradigm
     tim, sol, strat = num_sol.semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
@@ -105,6 +109,7 @@ if settings['simulation'] is True:
     num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext,
                                                       opt_prey=False, opt_pred=False)
 
+    params_ext['phi0'] = phi0
     with open('simulate_data.npy', 'wb') as g:
         np.save(g, tim)
         np.save(g, sol)
@@ -113,6 +118,7 @@ if settings['simulation'] is True:
         np.save(g, sol_2)
         np.save(g, strat_2)
 
+    params_ext['phi0'] = phi0
 
 elif settings['simulation'] is False:
     with open('simulate_data.npy', 'rb') as g:  # Save time by not generating all the data every time.
@@ -131,9 +137,9 @@ if settings['heatmap_up'] is True:
         par_t['phi0'] = x_axis_phi0[i]
         input_data.append({'values': nash_GM_phi0[i], 'parameters': par_t, 'strat': strat_nash_GM_phi0[i], 'iteration': i})
 
-    start = 20 #Change to 0.6*phi0, but for now we use phi0 for stability reasons
-    stop = 30
-    reverse = False
+    start = x_axis_res[0] #Change to 0.6*phi0, but for now we use phi0 for stability reasons
+    stop = x_axis_res[-1]
+    reverse = True
 
     agents = 4
     def temp_func(ivp, its = its_heat, start = start, stop = stop, settings = settings, reverse = reverse):
@@ -141,7 +147,7 @@ if settings['heatmap_up'] is True:
         values, strategies = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2,
                                      ivp['values'], ivp['parameters'], start, stop, its,
                                      reverse=reverse, type='resource',
-                                     linear=settings['linear'], strat=ivp['strat'])
+                                     linear=settings['linear'], strat=ivp['strat'], verbose = False)
         outputs[:, 0:3] = values
         outputs[:, 3:] = strategies
         print(ivp['iteration'], ivp['parameters']['phi0'], ivp['strat'], strat_nash_GM_phi0[0])
@@ -206,12 +212,12 @@ if settings['heatmap_down'] is True:
 
 if settings['func_dyn'] is True:
 
-    res_m = nash_GM_res[500, 0]
-    prey_m = nash_GM_res[500, 1]
+    res_m = nash_GM_res[int(its/2), 0]
+    prey_m = nash_GM_res[int(its/2), 1]
 
-    pred_m = np.linspace(0.001*nash_GM_res[500, 2], 2*nash_GM_res[500, 2], pred_var_fid + 1)
+    pred_m = np.linspace(0.001*nash_GM_res[int(its/2), 2], 2*nash_GM_res[int(its/2), 2], pred_var_fid + 1)
 
-    print("Values", nash_GM_res[500])
+    print("Values", nash_GM_res[int(its/2)])
     #20 is a good magic number
 
     params_t = copy.deepcopy(params_ext)
@@ -226,8 +232,8 @@ if settings['func_dyn'] is True:
 
 
 
-    frc[int(fidelity/2), int(pred_var_fid/2)] = strat_nash_GM_res[500] #This all assumes symmetry
-    frp[int(fidelity/2), int(pred_var_fid/2)] = strat_nash_GM_res[500]
+    frc[int(fidelity/2), int(pred_var_fid/2)] = strat_nash_GM_res[int(its/2)] #This all assumes symmetry
+    frp[int(fidelity/2), int(pred_var_fid/2)] = strat_nash_GM_res[int(its/2)]
     for k in range(int(pred_var_fid / 2)):
         params_t['phi0'] = xi_var[int(fidelity / 2) + k + 1]
         params_t_down['phi0'] = xi_var[int(fidelity / 2) - k - 1]
@@ -348,16 +354,33 @@ if settings['plot'] is True:
     fig.set_size_inches((16/2.54, 16/2.54))
 
     #ax[5].set_title('Population dynamics of optimal populations with bottom-up control')
-    ax[0, 0].set_ylabel('Resource, $m_p\cdot m^{-3}$')
+    ax[0, 0].set_ylabel('Resource, $m_c \cdot m^{-3}$')
     ax[-1, 0].set_xlabel('Carrying capacity $(\overline{R})$ $m_c\cdot m^{-3}$')
 
 
     ax[0, 0].plot(x_axis_res, nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
     ax[0, 0].plot(x_axis_res, static_values_res[:, 0], color = tableau20[0], linestyle = '-')
+#    ax[0,0].text(0, 1.1, "Population levels and behavior (1)", transform=ax[0,0].transAxes)
+#    ax[0,1].text(0, 1.1, "(2)", transform=ax[0,1].transAxes)
+
+    ax[0, 0].text(1.05, 0.9, "(a)", transform=ax[0, 0].transAxes)
+    ax[1, 0].text(1.05, 0.8, "(b)", transform=ax[1, 0].transAxes)
+    ax[2, 0].text(1.05, 0.9, "(c)", transform=ax[2, 0].transAxes)
+    ax[3, 0].text(1.05, 0.8, "(d)", transform=ax[3, 0].transAxes)
+    ax[4, 0].text(1.05, 0.9, "(e)", transform=ax[4, 0].transAxes)
+    ax[5, 0].text(1.05, 0.8, "(f)", transform=ax[5, 0].transAxes)
+
+    ax[0, 1].text(1.05, 0.9, "(g)", transform=ax[0, 1].transAxes)
+    ax[1, 1].text(1.05, 0.8, "(h)", transform=ax[1, 1].transAxes)
+    ax[2, 1].text(1.05, 0.9, "(i)", transform=ax[2, 1].transAxes)
+    ax[3, 1].text(1.05, 0.8, "(j)", transform=ax[3, 1].transAxes)
+    ax[4, 1].text(1.05, 0.9, "(k)", transform=ax[4, 1].transAxes)
+    ax[5, 1].text(1.05, 0.8, "(l)", transform=ax[5, 1].transAxes)
 
     ax[1, 0].set_ylabel('$\\tau_c$')
 
     ax[1, 0].fill_between(x_axis_res, strat_nash_GM_res[:, 0], y2 =0, alpha = 0.5, color = tableau20[6], linestyle = '-')
+    ax[1, 0].set_ylim((0, 1))
 
     ax[2, 0].set_ylabel('Consumer, $m_c\cdot m^{-3}$')
 
@@ -408,31 +431,44 @@ if settings['plot'] is True:
         plt.savefig('sensitivity_linear.pdf')
 
 
-    fig3, ax3 = plt.subplots(1, 2, sharey=True)
-    fig3.set_size_inches((16/2.54, 8/2.54))
+    fig3, ax3 = plt.subplots(3, 2, sharex='col', sharey = 'row')
+    fig3.set_size_inches((16/2.54, 12/2.54))
+#    ax3[0,0].text(0, 1.1, "Production, static vs. optimal (1)", transform=ax3[0,0].transAxes)
+#    ax3[0,1].text(0, 1.1, "(2)", transform=ax3[0,1].transAxes)
 
-    #ax3[2].set_title('Ratio of flux compared to static system, top-down control')
+    ax3[0, 0].text(1.05, 0.9, "(a)", transform=ax3[0, 0].transAxes)
+    ax3[1, 0].text(1.05, 0.9, "(b)", transform=ax3[1, 0].transAxes)
+    ax3[2, 0].text(1.05, 0.9, "(c)", transform=ax3[2, 0].transAxes)
 
-    ax3[0].set_ylabel('Production/Static production')
+    ax3[0, 1].text(1.05, 0.9, "(d)", transform=ax3[0, 1].transAxes)
+    ax3[1, 1].text(1.05, 0.9, "(e)", transform=ax3[1, 1].transAxes)
+    ax3[2, 1].text(1.05, 0.9, "(f)", transform=ax3[2, 1].transAxes)
 
-    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0]/flux_static_values_phi0[:, 0], color = tableau20[2], linestyle = '-')
+    ax3[0,1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
+    ax3[0,1].plot(x_axis_phi0, flux_static_values_phi0[:, 0], color = tableau20[0], linestyle = '-')
+    ax3[1,1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
+    ax3[0, 0].set_ylabel('$R\\to C$, \\\\ $m_c \cdot month^{-1}$')
+    ax3[1, 0].set_ylabel('$C\\to P$, \\\\ $m_c \cdot month^{-1}$')
+    ax3[2, 0].set_ylabel('$P\\to Top$, \\\\ $m_c \cdot month^{-1}$')
 
-    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1] / flux_static_values_phi0[:, 1], color=tableau20[6], linestyle='-')
 
-    ax3[0].plot(x_axis_phi0, flux_nash_GM_phi0[:, 2] / flux_static_values_phi0[:, 2], color=tableau20[10], linestyle='-')
+    ax3[1,1].plot(x_axis_phi0, flux_static_values_phi0[:, 1], color = tableau20[0], linestyle = '-')
+    ax3[2,1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
+    ax3[2,1].plot(x_axis_phi0, flux_static_values_phi0[:, 1], color = tableau20[0], linestyle = '-')
 
-    ax3[0].plot(x_axis_phi0, flux_static_values_phi0[:, 0]/flux_static_values_phi0[:, 0], color = tableau20[0], linestyle = '-')
 
+    ax3[0,0].plot(x_axis_res, flux_nash_GM_res[0], color = tableau20[6], linestyle = '-')
+    ax3[1,0].plot(x_axis_res, flux_nash_GM_res[1], color = tableau20[6], linestyle = '-')
+    ax3[2,0].plot(x_axis_res, flux_nash_GM_res[2], color = tableau20[6], linestyle = '-')
 
-    ax3[1].plot(x_axis_res, flux_nash_GM_res[0]/flux_static_values_res[0], color = tableau20[2], linestyle = '-')
-    ax3[1].plot(x_axis_res, flux_nash_GM_res[1]/flux_static_values_res[1], color = tableau20[6], linestyle = '-')
-    ax3[1].plot(x_axis_res, flux_nash_GM_res[2]/flux_static_values_res[2], color = tableau20[10], linestyle = '-')
+    ax3[0,0].plot(x_axis_res, flux_static_values_res[0], color = tableau20[0], linestyle = '-')
+    ax3[1,0].plot(x_axis_res, flux_static_values_res[1], color = tableau20[0], linestyle = '-')
+    ax3[2,0].plot(x_axis_res, flux_static_values_res[2], color = tableau20[0], linestyle = '-')
+    #ax3[1].plot(x_axis_res, flux_static_values_res[0]/flux_static_values_res[0], color = tableau20[0], linestyle = '-')
 
-    ax3[1].plot(x_axis_res, flux_static_values_res[0]/flux_static_values_res[0], color = tableau20[0], linestyle = '-')
+    ax3[-1,1].set_xlabel('Top predation pressure ($\\xi$) $month^{-1}$')
 
-    ax3[0].set_xlabel('Top predation pressure ($\\xi$) $month^{-1}$')
-
-    ax3[1].set_xlabel('Carrying capacity ($\overline{R}$) $m_c\cdot m^{-3}$')
+    ax3[-1,0].set_xlabel('Carrying capacity ($\overline{R}$) $m_c\cdot m^{-3}$')
 
 
 
@@ -446,6 +482,15 @@ if settings['plot'] is True:
 
     fig5, ax5 = plt.subplots(2, 2,  sharex='col', sharey = 'row')
     fig5.set_size_inches((16/2.54, 12/2.54))
+
+#    ax5[0,0].text(0, 1.1, "Equilibrium consumption rate (1)", transform=ax5[0,0].transAxes)
+#    ax5[0,1].text(0, 1.1, "(2)", transform=ax5[0,1].transAxes)
+
+    ax5[0, 0].text(1.05, 0.9, "(a)", transform=ax5[0, 0].transAxes)
+    ax5[1, 0].text(1.05, 0.9, "(b)", transform=ax5[1, 0].transAxes)
+
+    ax5[0, 1].text(1.05, 0.9, "(c)", transform=ax5[0, 1].transAxes)
+    ax5[1, 1].text(1.05, 0.9, "(d)", transform=ax5[1, 1].transAxes)
 
     ax5[0, 0].plot(x_axis_res, func_nash_GM_res[0], color = tableau20[6], linestyle = '-')
     ax5[0, 0].plot(x_axis_res, func_static_values_res[0], color = tableau20[0], linestyle = '-')
@@ -476,22 +521,29 @@ if settings['plot'] is True:
     fig6.set_size_inches((12/2.54, 8/2.54))
     #plt.title(
     #    "Functional response of predator, P " + str(np.round(pred_m, 2)) + " R " + str(np.round(res_m, 2)))
+#    ax6[0].text(0, 1.1, "Optimal consumption rate: predator,", transform=ax6[0].transAxes)
+#    ax6[1].text(0, 1.1, "consumer", transform=ax6[1].transAxes)
 
-    ax6[0].plot(prey_variation, prey_variation / (prey_variation + params_ext['nu0']),
+
+    ax6[1].plot(prey_variation, prey_variation / (prey_variation + params_ext['nu0']),
              label="P consumption, static", color = tableau20[0], linestyle = '-')
+    dc = []
     for k in range(fidelity+1):
-        ax6[0].plot(prey_variation, frp[:, k, 0] * frp[:, k, 1] * prey_variation / (
-                    frp[:, k, 0] * frp[:, k, 1] * prey_variation + params_ext['nu0']), color = tableau20[6], linestyle = '-',
-             label="P consumption, optimal", alpha = 0.05) #Changed to relative functional
-    ax6[0].set_xlabel("Prey in $m_c\cdot m^{-3}$")
+        dyn_col = k*np.array(tableau20[0])+(fidelity - k)*np.array(tableau20[6])
+        print(dyn_col)
+        dc.append((dyn_col[0]/max(dyn_col), dyn_col[1]/max(dyn_col), dyn_col[2]/max(dyn_col)))
+        ax6[1].plot(prey_variation, frp[:, k, 0] * frp[:, k, 1] * prey_variation / (
+                    frp[:, k, 0] * frp[:, k, 1] * prey_variation + params_ext['nu0']), color = dc[k], linestyle = '-',
+             label="P consumption, optimal", alpha = 0.2) #Changed to relative functional
+    ax6[1].set_xlabel("Prey in $m_c\cdot m^{-3}$")
     ax6[0].set_ylabel("Consumption/Max")
-    ax6[1].plot(resource_variation, resource_variation / (resource_variation + params_ext['nu0']),
+    ax6[0].plot(resource_variation, resource_variation / (resource_variation + params_ext['nu0']),
              color = tableau20[0], linestyle = '-', label="C consumption, static")
     for k in range(fidelity+1):
-        ax6[1].plot(resource_variation,
+        ax6[0].plot(resource_variation,
                  frc[:, k, 0] * resource_variation / (frc[:, k, 0] * resource_variation + params_ext['nu0']),
-                 color = tableau20[6], linestyle = '-', label="C consumption, optimal", alpha = 0.05) #alpha = 0.5
-    ax6[1].set_xlabel("Resource in $m_c\cdot m^{-3}$")
+                 color = dc[k], linestyle = '-', label="C consumption, optimal", alpha = 0.2) #alpha = 0.5
+    ax6[0].set_xlabel("Resource in $m_c\cdot m^{-3}$")
     fig6.tight_layout()
     if settings['linear'] is False:
         plt.savefig("Functional_response_consumer.pdf")
@@ -505,8 +557,16 @@ if settings['plot'] is True:
     fig8, ax8 = plt.subplots(6, 1, sharex=True, gridspec_kw={'height_ratios': [1, 0.5, 1, 0.5, 1, 0.5]})
     fig8.set_size_inches((8/2.54, 16/2.54))
 
+    #ax8[0].text(0, 1.1, "Time Dynamics", transform=ax8[0].transAxes)
+
+    ax8[0].text(1.05, 0.9, "(a)", transform=ax8[0].transAxes)
+    ax8[1].text(1.05, 0.8, "(b)", transform=ax8[1].transAxes)
+    ax8[2].text(1.05, 0.9, "(c)", transform=ax8[2].transAxes)
+    ax8[3].text(1.05, 0.8, "(d)", transform=ax8[3].transAxes)
+    ax8[4].text(1.05, 0.9, "(e)", transform=ax8[4].transAxes)
+    ax8[5].text(1.05, 0.8, "(f)", transform=ax8[5].transAxes)
     #ax8[5].set_title('Population dynamics of optimal populations with bottom-up control')
-    ax8[0].set_ylabel('Resource, $m_p\cdot m^{-3}$')
+    ax8[0].set_ylabel('Resource, $m_c\cdot m^{-3}$')
     ax8[-1].set_xlabel('Months')
 
 
@@ -542,10 +602,10 @@ if settings['plot'] is True:
     else:
         plt.savefig('simulation_dynamics_linear.pdf')
 
-    heatmap_plotter([grid_data[:,:, 0]], "res_var", [20, x_axis_res[-1], 0.6*params_ext['phi0'], 3*params_ext['phi0']])
-    heatmap_plotter([grid_data[:,:,1]], "cons_var", [20, x_axis_res[-1], 0.6*params_ext['phi0'], 3*params_ext['phi0']])
-    heatmap_plotter([grid_data[:,:,2]], "pred_var", [20, x_axis_res[-1], 0.6*params_ext['phi0'], 3*params_ext['phi0']])
-    heatmap_plotter([grid_data[:,:,3], grid_data[:,:,4]], "strat_var", [20, x_axis_res[-1], 0.6*params_ext['phi0'], 3*params_ext['phi0']])
+    heatmap_plotter([grid_data[:,:, 0]], "res_var", [x_axis_res[0], x_axis_res[-1], x_axis_phi0[0], x_axis_phi0[-1]])
+    heatmap_plotter([grid_data[:,:,1]], "cons_var", [x_axis_res[0], x_axis_res[-1], x_axis_phi0[0], x_axis_phi0[-1]])
+    heatmap_plotter([grid_data[:,:,2]], "pred_var", [x_axis_res[0], x_axis_res[-1], x_axis_phi0[0], x_axis_phi0[-1]])
+    heatmap_plotter([grid_data[:,:,3], grid_data[:,:,4]], "strat_var", [x_axis_res[0], x_axis_res[-1], x_axis_phi0[0], x_axis_phi0[-1]])
     #heatmap_plotter(, "taup_var", [20, x_axis_res[-1], 0.6*params_ext['phi0'], 3*params_ext['phi0']])
 
     #heatmap_plotter([np.vstack([grid_data_down, grid_data])[:,:,3], np.vstack([grid_data_down, grid_data])[:,:,4]], "strat_var_down", [5, 30, 0.6*params_ext['phi0'], 3*params_ext['phi0']])

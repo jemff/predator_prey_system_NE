@@ -423,7 +423,7 @@ def static_eq_calc(params):
 
 
 
-def parameter_calculator_mass(mass_vector, alpha = 15, b = 330/12, v = 0.05):
+def parameter_calculator_mass(mass_vector, alpha = 15/12, b = 330/12, v = 0.05):
     #alpha = 15
     #b = 330/12
     #v = 0.1 #/12
@@ -592,7 +592,10 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None, taun_previous = n
     if max(np.array([taup]).shape)<2:
         tauc = optm.minimize(lambda x: prey_GM(x, taup, params, y), x0 = taun_previous, bounds = [(0.00000001, 1)]).x #Used to be 0.5
         #print(prey_GM(tauc, taup, params, y), prey_GM(tauc_alt, taup, params, y))
+    tauc[np.isnan(tauc)] = 1
+
     return tauc
+
 
 
 def prey_gill(s_prey, s_pred, params, y):
@@ -802,7 +805,7 @@ def heatmap_plotter(data, image_name, ext):
         x0, x1 = ax.get_xlim()
         y0, y1 = ax.get_ylim()
         ax.set_aspect((x1 - x0) / (y1 - y0))
-        ax.set_xlabel("Carrying capacity ($\overline{R}$)")
+        ax.set_xlabel("("+str(i+1) +")" + " Carrying capacity ($\overline{R}$)")
         ax.set_ylabel("Top predation pressure ($\\xi$)")
 
         i += 1
