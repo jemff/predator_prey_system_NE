@@ -13,6 +13,8 @@ import common_functions as cf
 
 
 def heatmap_plotter(data, title, image_name, ext):
+    """Deprecated"""
+
     plt.figure()
     plt.title(title)
     #    plt.colorbar(res_nums, fraction=0.046, pad=0.04)
@@ -34,7 +36,8 @@ def heatmap_plotter(data, title, image_name, ext):
 
 
 
-def opt_taup_find_wazzup(y,s_prey,params): #This is the most recent derivation, it might be wrong tho. The other one is more battle-tested
+def opt_taup_find_wazzup(y,s_prey,params):
+    """Deprecated"""
     #s = 100
     #b = 330/12
     k_1 = params['cp']/params['nu1']*params['eps']*s_prey*y[1]/(2*params['phi0']) #k3 is phi0, k1 is b eps taun N s^{3/4} aka c_p #b*s**(3/4)
@@ -60,6 +63,7 @@ def opt_taup_find_wazzup(y,s_prey,params): #This is the most recent derivation, 
 
 
 def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_pred = True, nash = True, linear = False):
+    """Semi-implicit Euler scheme to calculate system dynamics, allowing for step-size and final time. The function is not generic and has to be optimal_behavior_trajectories"""
     solution = np.zeros((y0.shape[0], int(t_final / step_size)))
     strat = np.zeros((2,int(t_final / step_size)))
     t = np.zeros(int(t_final / step_size))
@@ -81,6 +85,18 @@ def semi_implicit_euler(t_final, y0, step_size, f, params, opt_prey = True, opt_
 
 
 def optimal_behavior_trajectories(t, y, params, taun = 1, taup = 1, linear = False):
+    """
+    System dynamics, with the strategies as inputs in comparison to the in analytical_numerical_solution.
+    Potentially this one should have been used throughout the continuation instead of solving the inner game.
+    :param t: Deprecated parameter
+    :param y: System state
+    :param params: Parameters
+    :param taun: Consumer strategy
+    :param taup: Predator strategy
+    :param linear: Whether the loss from staying in the arena is linear or quadratic
+    :return: Current growth rates.
+    """
+
     C = y[0]
     N = y[1]
     P = y[2]
@@ -99,6 +115,16 @@ def optimal_behavior_trajectories(t, y, params, taun = 1, taup = 1, linear = Fal
 
 
 def optimal_behavior_trajectories_euler_OG(t, y, params, seasons = False, taun=1, taup=1):
+    """
+    Deprecated
+    :param t:
+    :param y:
+    :param params:
+    :param seasons:
+    :param taun:
+    :param taup:
+    :return:
+    """
     C = y[0]
     N = y[1]
     P = y[2]

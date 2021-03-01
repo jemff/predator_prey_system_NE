@@ -9,6 +9,8 @@ import copy as copy
 from common_functions import *
 
 def opt_taup_find_old(y, taun, params):
+
+    """Deprecated"""
     C = y[0]
     N = y[1]
     P = y[2]
@@ -30,6 +32,7 @@ def opt_taup_find_old(y, taun, params):
 
 
 def opt_taun_find_dumb_dumb(y, params, dummy):
+    """Deprecated"""
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
@@ -68,6 +71,7 @@ def opt_taun_find_dumb_dumb(y, params, dummy):
 
 
 def opt_taun_find_old(y, params, dummy):
+    """Deprecated"""
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
@@ -96,6 +100,7 @@ def opt_taun_find_old(y, params, dummy):
 
 
 def opt_taun_find_unstable(y, params, taun_old):
+    """Deprecated"""
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam = params.values()
 
@@ -112,6 +117,17 @@ def opt_taun_find_unstable(y, params, taun_old):
 
 
 def optimal_behavior_trajectories_version_2(y, params, strat = None, nash = True, Gill = False, linear = False):
+    """
+    System dynamics, in a version where the inner game is solved as part of the system.
+    :param y: Current state
+    :param params: System parameters
+    :param strat: Initial value for strategy finding
+    :param nash: Whether to find the nash or stackelberg equilibrium
+    :param Gill: Whether to use Gilliams rule or instantaneous growth as fitness proxy
+    :param linear: A linear or quadratic arena cost
+    :return: Instantaneous growth
+    """
+
     C = y[0]
     N = y[1]
     P = y[2]
@@ -131,6 +147,21 @@ def optimal_behavior_trajectories_version_2(y, params, strat = None, nash = True
 
 
 def continuation_slope_ODE(f, x0, params, strat = None, type = 'resource', h = 0.000001, nash = True, Gill = False, root = True, linear = False):
+    """
+    This function calculates the slope of the fixed points for use in creating a continuation guess to second order.
+    :param f: The vector field describing the dynamics
+    :param x0: The previous fixed point
+    :param params: System parameters
+    :param strat: Strategy at the previous fixed point
+    :param type: The sensitivity parameter
+    :param h: Fineness
+    :param nash: Are we calculating the Nash or stackelberg equilibrium
+    :param Gill: Are we using Gilliams rule as fitness proxy
+    :param root: Use a root-finding procedure to find the zero or a less accurate but more robust least-squares procedure
+    :param linear: Whether the cost of staying in the arena is linear or quadratic
+    :return: Slope at x0
+    """
+
     params_interior = copy.deepcopy(params)
     if root is True:
         params_interior[type] += h
@@ -147,12 +178,43 @@ def continuation_slope_ODE(f, x0, params, strat = None, type = 'resource', h = 0
     return (up-down)/(2*h)
 
 def continuation_strat(params, x, type = 'resource', h = 0.000005, nash = True, x0 = np.array([0.5, 0.5])):
+    """Incomplete"""
     params_int = copy.deepcopy(params)
     params_int[type] += h
     up = combined_strat_finder(params, x, stackelberg=not nash, x0=x0)
     pass
 
+
+def function_wrapper(f, x, y, step = 10**(-4)):
+    """Incomplete, the idea was to exploit the system stability to find fix points when the continuation procedure failed"""
+    return y+step*f(x)
+
+def fp_stable_de(tolerance):
+    pass
+
+
 def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat = np.array([0.5, 0.5]), type = 'resource', h = 0.000005, nash = True, Gill = False, root = True, linear = False, verbose = True):
+    """
+    This function performs the actual continuation procedure, forming the heart of the article. The function signature makes it look more generic than it actually is, but the function f must be the function optimal_behavior_trajectories_version_2.
+
+    :param f: A supposedly generic function to perform continuation on, in reality optimal_behavior_trajectories_version_2 in disguise.
+    :param x0: A guess for the initial value of the continuation interval.
+    :param params: Baseline parameters
+    :param start: Start of the parameter being varied
+    :param stop: Final value of the parameter being varied
+    :param its: Number of iterations, the inverse of the step-size.
+    :param reverse: The direction of the continuation. If true the continuation goes upwards.
+    :param strat: Strategy best guess for the initial value. Mainly useful when creating a grid.
+    :param type: Which parameter value we are performing the sensitivity analysis for.
+    :param h: Accuracy of second approximation when determining the slope for the continuation guess.
+    :param nash: Whether we are looking for a Nash or Stackelberg equilibrium.
+    :param Gill: Whether we are using Gilliams rule or instantaneous pr. capita growth.
+    :param root: If true, we use a root finding procedure to find the fixed point. Else a more robust but less accurate least-squares method is used.
+    :param linear: Whether the loss from staying in the arena is linear or quadratic. The loss is linear if True.
+    :param verbose: If true, output status of continuation for each step. The recommendation is to disable when creating a grid, unless something is seriously weird.
+    :return: An array of fixed points, and accompanying strategies.
+    """
+
     interval = np.linspace(start, stop, its)
     step_size = interval[1]-interval[0]
     params_int = copy.deepcopy(params)
@@ -178,9 +240,20 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
         cont_guess[cont_guess < 0] = 0
         if root is True:
             optm_obj = optm.root(lambda y: f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear), x0=cont_guess, method='hybr')
+            #optm.newton(lambda y: np.array([1, 10, 10**3])*f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear), x0=big_old_values[i-1], x1=cont_guess)
             x_temp = optm_obj.x
-            if optm_obj.success is False:
-                x_temp = cont_guess #big_old_values[i-1]
+            success_try = True
+            if optm_obj.success is False or np.linalg.norm(x_temp-big_old_values[i-1])>step_size*np.min(big_old_values[i-1]):
+                success_try = False
+                inner_its = 0
+                while success_try is False and inner_its<10: #In case the fixed point was not found with the continuation guess, keep trying values that are slightly bigger than the previous value, and if this ends up failing use the continuation guess as the fixed point.
+                    optm_obj = optm.root(
+                        lambda y: f(y, params_int, nash=nash, strat=all_strats[i - 1], Gill=Gill, linear=linear),
+                        x0=big_old_values[i-1]+dire*its*step_size*big_old_values[i-1], method='hybr')
+                    inner_its+=1
+                    success_try = copy.deepcopy(optm_obj.success)
+                if success_try is False:
+                    x_temp = cont_guess #big_old_values[i-1]
                 #print("Oh man", Gill, nash)
         else:
             optm_obj = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, bounds = (0, np.inf))
@@ -189,7 +262,7 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
 
         big_old_values[i] = x_temp
         if verbose is True:
-            print(x_temp, optm_obj.success, cont_guess, type)
+            print(x_temp, optm_obj.success, cont_guess, type) #Print continuation output for manual inspection of success while running
 
         if x_temp[-1] < 10**(-10):
             big_old_values[i] = big_old_values[i-1]
@@ -201,8 +274,9 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
         big_old_values = big_old_values[::-1]
         all_strats = all_strats[::-1]
 
-
+    print(interval[-1])
     return big_old_values, all_strats
+
 
 
 
@@ -213,20 +287,18 @@ opt_prey = True
 opt_pred = True
 #Currently the affinity is set to 1!!
 
-manual_max = False
-if manual_max is True:
-    for i in range(int(base*10)):
-        for j in range(int(base*10)):
-            for k in range(int(base*10)):
-                test_num = np.array([0.1+0.1*i, 0.1+0.1*j, 0.1+0.1*k])
-                is_opt = np.abs(optimal_behavior_trajectories(test_num, params_ext))
-                if np.sum(is_opt) < 0.5*10**(-1):
-                    print(test_num)
-
-    print("I'm done")
-
 def flux_calculator(R, C, P, taun, taup, params, linear = False):
-
+    """
+    The funciton calculates the trophic production
+    :param R: Resouces
+    :param C: Consumers
+    :param P: Predators
+    :param taun: Consumer strategy
+    :param taup: Predator strategy
+    :param params: System parameters
+    :param linear: Whether the loss from staying in the arena is linear or quadratic, default is False (quadratic)
+    :return: Production
+    """
     flux_01 = params['cmax']*C * taun * R / (taun * R + params['nu0'])
     flux_12 = C * taup * taun * P * params['cp'] * 1 / (taup * taun * C + params['nu1'])
     if linear is False:
@@ -237,88 +309,19 @@ def flux_calculator(R, C, P, taun, taup, params, linear = False):
     return np.array([flux_01, flux_12, flux_2n])
 
 def frp_calc(R, C, P, taun, taup, params):
-
+    """
+    Calculate the relative instantaneous growth rate without loss
+    :param R: Resources
+    :param C: Consumers
+    :param P: Predators
+    :param taun: Consumer strategy
+    :param taup: Predator strategy
+    :param params: System parameters
+    :return: Instantanenous relative growth rates
+    """
     frp_C = taun * R / (taun * R + params['nu0']) #removed cmax
     frp_P = C * taup * taun * 1 / (taup * taun * C + params['nu1']) #Removed cp
 
     return np.array([frp_C, frp_P])
 
-its = 0
-if its > 0:
-    taun_grid = np.zeros((its, its))
-    taup_grid = np.zeros((its, its))
-    res_nums = np.zeros((its, its))
-    prey_nums = np.zeros((its, its))
-    pred_nums = np.zeros((its, its))
-    start_point = np.copy(sol_3.x)
-    x_ext = np.zeros(3)
-    x_prev = np.zeros(3)
-
-
-    for i in range(its):
-        params_ext['resource'] = base + step_size*i
-        if i is 0:
-            x_ext = np.copy(start_point)
-        else:
-            x_ext = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=x_ext, method='hybr').x
-    #    jac_temp = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), x_ext, h)
-    #    print(np.linalg.eig(jac_temp)[0])
-        for j in range(its):
-            params_ext['phi0'] = phi0_base+j*step_size_phi
-            if j is 0:
-                x_prev = np.copy(x_ext)
-                sol_temp = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=x_prev, method='hybr')
-                x_prev = sol_temp.x
-            else:
-                sol_temp = optm.root(lambda y: optimal_behavior_trajectories(y, params_ext), x0=x_prev, method='hybr')
-                x_prev = sol_temp.x
- #               if sol_temp.success is False or j is 0:
- #                   print(sol_temp.message)
-
-            jac_temp = jacobian_calculator(lambda y: optimal_behavior_trajectories(y, params_ext), x_prev, h)
-            #print(np.linalg.eig(jac_temp)[0], x_prev, params_ext["phi0"], params_ext["resource"])
-#            print(np.real(np.linalg.eig(jac_temp)[0].max()))
-            eigen_max[i, j] = np.real(np.linalg.eig(jac_temp)[0].max())
-            res_nums[i, j] = x_prev[0]
-            prey_nums[i, j] = x_prev[1]
-            pred_nums[i, j] = x_prev[2]
-            taun_grid[i, j], taup_grid[i, j] = strat_finder(x_prev, params_ext)
-#            print(taup_grid[i, j], j)
-#            if eigen_max[i, j] > 0:
-#                print("Oh no!")
-
-#    print(prey_nums[:, 0])
-    ran = [base, base+its*step_size, 100*phi0_base, 100*(phi0_base+its*step_size_phi)]
-    print("Ran", ran)
-
-
-
-    temporary_thingy = np.zeros((its, its))
-    temporary_thingy[0,:] = 1
-    heatmap_plotter(temporary_thingy, "test", "test", ran)
-    heatmap_plotter(res_nums.T, 'Resource g/m^3', "resource_conc", ran)
-    heatmap_plotter(prey_nums.T, 'Prey g/m^3', "prey_conc", ran)
-    heatmap_plotter(pred_nums.T, 'Predators g/m^3', "pred_conc", ran)
-    heatmap_plotter(taun_grid.T, 'Prey foraging intensity', "prey_for", ran)
-    heatmap_plotter(taup_grid.T, 'Predator foraging intensity', "pred_for", ran)
-    heatmap_plotter(eigen_max.T, 'Eigenvalues', "Eigenvalues", ran)
-
-#    plt.figure()
-#    plt.title('Resource kg/m^3')
-#    #    plt.colorbar(res_nums, fraction=0.046, pad=0.04)
-#    plt.xlabel("Cbar, kg/m^3")
-#    plt.ylabel("phi0, kg/(m^3 * week)")
-#
-#    ax = plt.gca()
-#    im = ax.imshow(res_nums, cmap='Reds', extent =ran)
-
-    # create an axes on the right side of ax. The width of cax will be 5%
-    # of ax and the padding between cax and ax will be fixed at 0.05 inch.
-#    divider = make_axes_locatable(ax)
-#    cax = divider.append_axes("right", size="5%", pad=0.05)
-
-#    plt.colorbar(im, cax=cax)
-
-#    plt.savefig("resource_conc.png")
-#    plt.show()
 

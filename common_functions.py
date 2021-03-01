@@ -5,7 +5,10 @@ import scipy.optimize as optm
 
 def opt_taun_linear(y, taup, params, v = 0.1, s=100, eps = 0.14, nu = 0.545454545):
     R, C, P = y[0], y[1], y[2]
-
+    """
+        This function is deprecated. 
+        In theory it should be able to calculate the optimal behavior of a consumer with a linear loss from being in the arena, but it does not work. 
+    """
 
     k_1 = 1/v*eps*nu*R
     k_2 = C*taup
@@ -155,13 +158,38 @@ def opt_taun_linear(y, taup, params, v = 0.1, s=100, eps = 0.14, nu = 0.54545454
 
 
 def taun_linear(y, taup, params):
+    """
+    A function calculating the value of taun for a linear predator loss in the stackelberg game.
+    :param y: The state of the system
+    :param taup: The predator strategy
+    :param params: System parameters
+    :return: The optimal strategy of the consumer in the stackelberg game with linear predator loss
+    """
     root_object = optm.root(lambda strat: num_derr(lambda s_prey: taun_fitness_II_linear(s_prey, taup, params, y[0], y[1], y[2]), strat, 0.00001), x0 = 1)
     return max(root_object.x, np.array([1]))
 
 def multi_objective_root(y, taun, taup, params):
+    """
+    Direct calculation of the Nash equilibrium as an intersection of two curves, does not work.
+    :param y: State of the system
+    :param taun: Consumer strategy
+    :param taup: Predator strategy
+    :param params: System parameters
+    :return: Nash equilibrium
+    """
+
     return np.array([taun_linear(y, taup, params)-taun, opt_taup_find(y, taun, params)[0] - taup])
 
 def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
+    """
+    A contrived function to calculate the Nash equilibrium, in the end a simpler function was used (working_nash_eq_find)
+
+    :param y: System state
+    :param params: System parameters
+    :param opt_prey: Whether the consumer behaves optimally
+    :param opt_pred: Whether the predator behaves optimally
+    :return: The nash equilibrium
+    """
 
     if opt_pred is True and opt_prey is True:
         testing_numbers = np.linspace(0.0000005, 1, 100)
@@ -197,6 +225,18 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
 
 
 def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = True, opt_pred = True, linear = False):
+    """
+    This function determines the Nash equilibrium when the iterated best response strategy fails, via. finding the fixed-point of the best-response maps.
+    :param y: System state
+    :param params: Parameters
+    :param taun_previous: Previous value of taun, best guess to use for fixed-point finding
+    :param opt_prey: Whether the consumer is optimal
+    :param opt_pred: Whether the predator is optimal
+    :param linear: Shape of the predator and consumer loss functions from being in the arena, if the default is quadratic
+    :return: The Nash equilibrium
+    """
+
+
     if opt_pred and opt_prey is True:
         #testing_numbers = np.linspace(0.01, 1, 100)
         #valid_responses = opt_taun_analytical(y, testing_numbers, 100, params['eps'], params['nu0'])
@@ -208,25 +248,27 @@ def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = Tr
         #    taup = 0
 
         #else:
-        root_obj = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params, linear = linear)[0], 100, params['eps'], params['nu0'], params = params, taun_previous = taun_previous)-strat, x0 = taun_previous)
+        #print(taun_previous)
+        root_obj = optm.root(lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params, linear = linear)[0], 100, params['eps'], params['nu0'], params = params, taun_previous = taun_previous)-strat, x0 = taun_previous, method = 'hybr')
+        #The nash equilibrium is determined here by finding the fixed point of the best-response map.
 #        print(root_obj.x, least_sq_obj.x)
         taun = root_obj.x
-        if root_obj.success is False:
+        if root_obj.success is False: #If the exact root-finding fails, we fall back to a least-squares approximation of the root finding
             least_sq_obj = optm.least_squares(
                 lambda strat: opt_taun_analytical(y, opt_taup_find(y, strat, params, linear = linear)[0], 100, params['eps'],
-                                                  params['nu0'], params=params, taun_previous=taun_previous) - strat,
+                                                  params['nu0'], params=params, taun_previous=taun_previous) - 10*strat,
                 x0 = taun_previous)
 
             taun = least_sq_obj.x
-            #print("Err2", params['phi0'], least_sq_obj)
+            print("Err2", params['phi0'], least_sq_obj) #Printing when we are in the least-squares case, allowing manual inspection of whether the result is reasonable
         taup = opt_taup_find(y, taun, params, linear = linear)[0]
 #        print(taun, taup, root_obj.message, "Outer root")
 
-        if taun>1:
+        if taun>1: #This is no longer a plausible case, due to opt_taun_analytical being bounded
             taun = np.array([1])
             taup = opt_taup_find(y, taun, params, linear = linear)[0]
 
-    else: #Should add the other two cases.
+    else: #Should add the other two cases, but this handles when everything is dumb.
         taun = 1
         taup = 1
 #    print(opt_taup_find(y, 0.5, params))
@@ -234,7 +276,11 @@ def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = Tr
     return taun, taup
 
 def opt_taun_find_Gill(y, params, taun_old):
-    C, N, P = y[0], y[1], y[2]
+    """
+    The purpose of this function is to determined the Stackelberg equilibrium when Gilliams rule is used as fitness proxy.
+    """
+
+    C, N, P = y[0], y[1], y[2] #Remark that the state variables have the wrong names, C corresponds to R in the article, N corresponds to C and P is P.
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
     taun_fitness_II = lambda s_prey: epsn * cmax * s_prey * C / (s_prey * C + nu0) - cp * taup(s_prey) * s_prey * P / (
@@ -251,10 +297,10 @@ def opt_taun_find_Gill(y, params, taun_old):
     #Eeeeh. Not worth it.
     linsp = np.linspace(0.001 , 1, 100)
     comparison_numbs = taun_fitness_II_d(linsp)
-    alt_max_cand = linsp[np.argmax(taun_fitness_II(linsp))]
+    alt_max_cand = linsp[np.argmax(taun_fitness_II(linsp))] #We determined the numerical maximal fitness on a coarse grid, if the maximal fitness is not at the chosen extremum.
 
     #print(comparison_numbs)
-    if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0:
+    if len(np.where(comparison_numbs > 0)[0]) is 0 or len(np.where(comparison_numbs < 0)[0]) is 0: #If the derivative function has no zeros, the extremum must lie in either end of the interval.
         t0 = taun_fitness_II(0.001)
         t1 = taun_fitness_II(1)
         if t0 > t1:
@@ -263,14 +309,14 @@ def opt_taun_find_Gill(y, params, taun_old):
             max_cands = 1
       #  print("dong dong")
 
-    else:
+    else: #We determined the zeros of the derivative
         maxi_mill = linsp[np.where(comparison_numbs > 0)[0][0]]
         mini_mill = linsp[np.where(comparison_numbs < 0)[0][0]]
         max_cands = optm.root_scalar(taun_fitness_II_d, bracket=[mini_mill, maxi_mill], method='brentq').root
         #print("ding ding", taun_fitness_II(max_cands), np.max(taun_fitness_II(linsp)))
    # print(num_derr(taun_fitness_II, max_cands, 0.0001), taun_fitness_II_d(max_cands), max_cands)
    # print(np.max(taun_fitness_II(linsp)), taun_fitness_II(max_cands))
-    if taun_fitness_II(max_cands)<=taun_fitness_II(alt_max_cand):
+    if taun_fitness_II(max_cands)<=taun_fitness_II(alt_max_cand): #We pick the strategy that maximizes fitness, based on comparing with the maximal fitness and the fitness at the extremum
         max_cands = alt_max_cand
         #print("Ding dong sling slong")
     #if taun_fitness_II(max_cands)<0:
@@ -281,6 +327,16 @@ def opt_taun_find_Gill(y, params, taun_old):
 
 
 def nash_eq_find_old(y, params, opt_prey = True, opt_pred = True):
+    """
+    Deprecated function, as the name indicates.
+
+    :param y:
+    :param params:
+    :param opt_prey:
+    :param opt_pred:
+    :return:
+    """
+
     if opt_pred and opt_prey is True:
         testing_numbers = np.linspace(0.000001, 1, 100)
         valid_responses = opt_taun_analytical(y, testing_numbers, 100, params['eps'], params['nu0'])
@@ -317,28 +373,47 @@ def nash_eq_find_old(y, params, opt_prey = True, opt_pred = True):
     return taun, taup
 
 def opt_taup_find_quadratic(y, s_prey, params):
+    """
+    A function to determine argmax of the predator fitness, exploiting the concavity of the function
+
+    :param y: The state of the system
+    :param s_prey: The consumer strategy
+    :param params: The parameters
+    :return: The optimal predator strategy
+    """
+
     #print(params)
     k = s_prey * y[1] / params['nu1']
     c = params['cp']/params['nu1']*params['eps'] * s_prey * y[1] / params['phi0']
     x = 1 / 3 * (2 ** (2 / 3) / (
                 3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (1 / 3)
                  + (3 * np.sqrt(3) * np.sqrt(27 * c ** 2 * k ** 8 + 8 * c * k ** 7) + 27 * c * k ** 4 + 4 * k ** 3) ** (
-                             1 / 3) / (2 ** (2 / 3) * k ** 2) - 2 / k) #Why was WA not included!?!?
+                             1 / 3) / (2 ** (2 / 3) * k ** 2) - 2 / k) #Maximum of the predator fitness, determined by differentating and setting to zero in a CAS.
     x = np.array([x])
     if max(x.shape) > 1:
         x = np.squeeze(x)
         x[x > 1] = 1
-        x[np.isnan(x)] = 0.78 #eeeh
+        x[np.isnan(x)] = 0.78 #No longer used
         #print("Alarm!")
     else:
         if x[0] > 1:
             x[0] = 1
-        x[np.isnan(x)] =  optm.minimize(lambda x: pred_GM(s_prey, x, params, y, linear = False), x0 = np.array([0.5]), bounds = [(0.00000001, 1)]).x
+        x[np.isnan(x)] = optm.minimize(lambda x: pred_GM(s_prey, x, params, y, linear = False), x0 = np.array([0.5]), bounds = [(0.00000001, 1)]).x #If the maximum lies outside the chosen interval, we maximize numerically
 
     x[x<0] = 0
     return x
 
 def opt_taup_find(y, s_prey, params, linear = False):
+    """
+    Wrapper function calling either the quadratic or the linear optimal predator strategy function, based on whether the arena cost is linear or quadratic
+
+    :param y: System state
+    :param s_prey: Consumer strategy
+    :param params: System parameters
+    :param linear: Linear or quadratic cost, default is false indicating quadratic cost
+    :return: Optimal predator strategy
+    """
+
     if linear is False:
         x = opt_taup_find_quadratic(y, s_prey, params)
     elif linear is True:
@@ -347,6 +422,19 @@ def opt_taup_find(y, s_prey, params, linear = False):
 
 
 def opt_taun_find(y, params, taun_old):
+    """
+    A function to determine the optimal consumer strategy in the Stackelberg equilibrium with instantaneous growth as fitness proxy. See the corresponding function with Gilliams rule for details.
+
+    :param y: System state
+    :param params: System parameters
+    :param taun_old: Best guess as to Nash equilibrium consumer strategy.
+
+
+
+    :return: Optimal consumer strategy at Stackelberg equilibrium
+    """
+
+
     C, N, P = y[0], y[1], y[2]
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
@@ -393,6 +481,12 @@ def opt_taun_find(y, params, taun_old):
 
 import semi_impl_eul as num_sol
 def static_eq_calc(params):
+    """
+    We calculate the equilibrium of the system with constant behavior.
+    :param params: System parameters
+    :return: Equilibrium values
+    """
+
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
 
     phitild = phi0 + phi1
@@ -405,9 +499,9 @@ def static_eq_calc(params):
     R_star = (-gam + np.sqrt(gam ** 2 + 4 * cbar * nu0)) / 2
 
     P_star = (epsn * C_star * R_star * cmax / (R_star + nu0) - mutild * C_star) / (cp * C_star / (C_star + nu1))
-
+    #print(params['phi0'], cmax, cbar, phitild, mu1, mu0, P_star)
     #    print(cp*C_star/(C_star+nu1), epsn * C_star*R_star*cmax/(R_star+nu0))
-    if P_star < 0 or C_star < 0:
+    if P_star < 0 or C_star < 0: #If either predator or consumer population is negative, the solution is not feasible and we restrict to the consumer and resource only case
         R_star = mutild*nu0/(eps*cmax)*((1-mutild/(eps*cmax))**(-1)) #nu0 * mutild / (epsn * cmax + mutild)
         C_star = lam * (cbar - R_star) * (R_star + nu0) / (cmax * R_star)
         P_star = 0
@@ -415,7 +509,7 @@ def static_eq_calc(params):
         print(num_sol.optimal_behavior_trajectories(0, np.array([R_star, C_star, P_star]), params)[0:3],
               np.array([R_star, C_star, P_star]))
 
-    if C_star < 0:
+    if C_star < 0: #If the consumer population is negative in the case where there are only consumers and resources, restrict to the resource only case
         R_star = cbar
         P_star = 0
         C_star = 0
@@ -423,10 +517,20 @@ def static_eq_calc(params):
 
 
 
-def parameter_calculator_mass(mass_vector, alpha = 15/12, b = 330/12, v = 0.05):
+def parameter_calculator_mass(mass_vector, alpha = 15/12, b = 330/12, v = 0.1):
+    """
+    The function calculates the system parameters based on metabolic scaling.
+    :param mass_vector: Scale between predators and consumers
+    :param alpha: Universal maximal growth
+    :param b: Universal clearance rate
+    :param v: Ratio between respiration and maximal growth
+    :return:
+    """
+
     #alpha = 15
     #b = 330/12
     #v = 0.1 #/12
+
     maximum_consumption_rate = alpha * mass_vector[1:]**(0.75)
 
     ci = v*maximum_consumption_rate
@@ -440,10 +544,31 @@ def parameter_calculator_mass(mass_vector, alpha = 15/12, b = 330/12, v = 0.05):
 
 
 def taun_fitness_II_linear(s_prey, s_pred, params, R, C, P):
+    """
+    Consumer instantaneous growth with linear loss in arena
+    :param s_prey: Consumer strategy
+    :param s_pred: Predator strategy
+    :param params: System parameters
+    :param R: Resources
+    :param C: Consumers
+    :param P: Predators
+    :return: Instant growth
+    """
+
     return params['epsn'] * params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['cp'] * s_pred * s_prey * P / (
                 s_pred * s_prey * C + params['nu1']) - params['mu1'] - params['mu0']*s_prey #This does have linear cost???
 
 def taun_fitness_II(s_prey, params, R, C, P):
+    """
+    Consumer instantaneous growth with quadratic loss in arena
+    :param s_prey: Consumer strategy
+    :param s_pred: Predator strategy
+    :param params: System parameters
+    :param R: Resources
+    :param C: Consumers
+    :param P: Predators
+    :return: Instant growth
+    """
     y = np.array([R, C, P])
     return params['epsn'] * params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['cp'] * opt_taup_find(y, s_prey, params) * s_prey * P / (
                 opt_taup_find(y, s_prey, params) * s_prey * C + params['nu1']) - params['mu1']
@@ -451,7 +576,15 @@ def taun_fitness_II(s_prey, params, R, C, P):
 
 
 def strat_finder_Gill(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
-
+    """
+    Stackelberg equilibrium calculator for Gilliams rule fitness
+    :param y: State
+    :param params: Parameters
+    :param opt_prey: Optimal prey (true or false)
+    :param opt_pred: Optimal predators (true or false)
+    :param taun_old: Best guess for consumer strategy
+    :return: Consumer and predator strategies at stackelberg equilibrium
+    """
     taun = min(max(opt_taun_find(y, params, taun_old), 0), 1)
     taup = min(max(opt_taup_find(y, taun, params), 0), 1)
 
@@ -459,6 +592,17 @@ def strat_finder_Gill(y, params, opt_prey = True, opt_pred = True, taun_old = 1)
 
 
 def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
+
+    """
+    Stackelberg equilibrium calculator for instantaneous growth rule fitness
+    :param y: State
+    :param params: Parameters
+    :param opt_prey: Optimal prey (true or false)
+    :param opt_pred: Optimal predators (true or false)
+    :param taun_old: Best guess for consumer strategy
+    :return: Consumer and predator strategies at stackelberg equilibrium
+    """
+
     C, N, P = y[0], y[1], y[2]
     taun = 1
     taup = 1
@@ -504,7 +648,15 @@ def strat_finder(y, params, opt_prey = True, opt_pred = True, taun_old = 1):
 
 
 def opt_taup_find_linear(y, taun, params): #THIS IS THE LIENAR VERSION !!!!!!!!!!!!!!!!!!!!!!!
-    N = y[1]
+
+    """
+    We calculate the optimal predator strategy when the loss from staying in the arena is linear.
+    :param y: System state
+    :param taun: Consumer strategy
+    :param params: System parameters
+    :return: Optimal predator strategy
+    """
+    N = y[1] #Number of consumers
 
     taun = np.array([taun])
     if taun.shape == (1,1):
@@ -512,13 +664,21 @@ def opt_taup_find_linear(y, taun, params): #THIS IS THE LIENAR VERSION !!!!!!!!!
     elif np.sum(taun.shape) > 2:
         taun = np.squeeze(taun)
     cmax, mu0, mu1, eps, epsn, cp, phi0, phi1, cbar, lam, nu0, nu1 = params.values()
-    res = (np.sqrt(cp*nu0*eps / (phi0 * taun * N)) - nu0 / (N * taun))
+    res = (np.sqrt(cp*nu0*eps / (phi0 * taun * N)) - nu0 / (N * taun)) #Extremum of the function
 
     res[res>1] = 1
     res[res<0] = 0
     return res
 
 def num_derr(f, x, h):
+    """
+    Second order approximation of the numerical derivative of a function f, at the point x with accuracy h
+    :param f: function
+    :param x: point
+    :param h: accuracy
+    :return: derivative
+    """
+
     x_m = float(np.copy(x))
     x_p = float(np.copy(x))
     x_m -= h
@@ -529,6 +689,14 @@ def num_derr(f, x, h):
 
 
 def jacobian_calculator(f, x, h):
+    """
+    Second order approximation of the Jacobian of a function f at a point x with accuracy h
+    :param f: The function in question
+    :param x: The point in question
+    :param h: Fineness
+    :return: Jacobian approximation
+    """
+
     jac = np.zeros((x.shape[0], x.shape[0]))
     x_m = np.copy(x)
     x_p = np.copy(x)
@@ -542,6 +710,19 @@ def jacobian_calculator(f, x, h):
     return jac
 
 def opt_taun_analytical_old(y, taup, s, eps, gamma, params = None):
+    """
+    Deprecated function to calculate the analytical maximum of taun, but some roots are missed in the algebraic manipulations leading up to the expression for optimality
+
+    :param y:
+    :param taup:
+    :param s:
+    :param eps:
+    :param gamma:
+    :param params:
+    :return:
+    """
+
+
     R, C, P = y[0], y[1], y[2]
 
     eta = (taup*P*s**(3/4)*(eps*R)**(-1))**(1/2)
@@ -563,13 +744,25 @@ def opt_taun_analytical_old(y, taup, s, eps, gamma, params = None):
 
 def opt_taun_analytical(y, taup, s, eps, gamma, params = None, taun_previous = np.array([0.5])):
 
-    a=eps*y[0]*15
+    """
+    A function to numerically calculate the optimal consumer strategy, so the name is a bit misleading.
+
+    :param y: System state state
+    :param taup: Predator strategy
+    :param s: Scale factor
+    :param eps: Conversion factor
+    :param gamma: Half-saturation constant
+    :param params: System parameters
+    :param taun_previous: Best guess at consumer strategy
+    :return: Optimal consumer strategy
+    """
+    a=eps*y[0]*15/12
     b=y[0]
     c=gamma
-    d=s**(3/4)*15*taup*y[2]
+    d=s**(3/4)*15/12*taup*y[2]
     e=y[1]*taup
-
-    tauc = ((b**2*d-a*e**2)*np.sqrt(a*c**2*(d*(b-e)**2)/(b**2*d-a*e**2)**2)+a*c*e-b*c*d)/(b**2*d-a*e**2)
+#    print(gamma)
+    tauc = ((b**2*d-a*e**2)+np.sqrt(a*c**2*(d*(b-e)**2)/(b**2*d-a*e**2)**2)+a*c*e-b*c*d)/(b**2*d-a*e**2)
 #    tauc_alt = opt_taun_analytical_old(y, taup, s, eps, gamma)
 
 
@@ -578,6 +771,7 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None, taun_previous = n
     if len(tauc.shape)>1:
         tauc = np.squeeze(tauc)
 
+#    print(tauc)
 
     tauc[tauc>1] = 1
 #    if len(tauc[tauc<0]) != 0:
@@ -590,8 +784,8 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None, taun_previous = n
 #    if that < this:
 #        tauc = np.array([1])
     if max(np.array([taup]).shape)<2:
-        tauc = optm.minimize(lambda x: prey_GM(x, taup, params, y), x0 = taun_previous, bounds = [(0.00000001, 1)]).x #Used to be 0.5
-        #print(prey_GM(tauc, taup, params, y), prey_GM(tauc_alt, taup, params, y))
+        #Numerical optimal consumer strategy
+        tauc = optm.minimize(lambda x: prey_GM(x, taup, params, y), x0 = taun_previous, bounds = [(0.00000001, 1)]).x
     tauc[np.isnan(tauc)] = 1
 
     return tauc
@@ -599,24 +793,57 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None, taun_previous = n
 
 
 def prey_gill(s_prey, s_pred, params, y):
+    """
+    Consumer fitness with Gilliams rule
+    :param s_prey: Consumer strategy
+    :param s_pred: Predator strategy
+    :param params: System parameters
+    :param y: System state
+    :return: Gilliams rule fitness for the consumer
+    """
+
     R, C, P = y[0], y[1], y[2]
 
     return -(params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['mu0'] * s_prey - params['mu1']) / (
                 params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + params['nu1']))
 
 def pred_gill(s_prey, s_pred, params, y):
+    """
+    Predator fitness with Gilliams rule
+    :param s_prey: Consumer strategy
+    :param s_pred: Predator strategy
+    :param params: System parameters
+    :param y: System state
+    :return: Gilliams rule fitness for the consumer
+    """
     R, C, P = y[0], y[1], y[2]
 
     return -(params['cp'] * params['eps'] * s_prey * s_pred * C / (C * s_prey * s_pred + params['nu1']) - params['phi1']) / (
                 params['phi0'] * s_pred ** 2)
 
 def prey_GM(s_prey, s_pred, params, y):
+    """
+    Consumer fitness with instantaneous fitness
+    :param s_prey: Consumer strategy
+    :param s_pred: Predator strategy
+    :param params: System parameters
+    :param y: System state
+    :return: Instantanenous growth for the consumer
+    """
     R, C, P = y[0], y[1], y[2]
 
     return -((params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['mu0'] * s_prey - params['mu1']) - (
             params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + params['nu1'])))
 
 def pred_GM(s_prey, s_pred, params, y, linear = False):
+    """
+    Consumer fitness with instantaneous fitness
+    :param s_prey: Consumer strategy
+    :param s_pred: Predator strategy
+    :param params: System parameters
+    :param y: System state
+    :return: Instantanenous growth for the predator
+    """
     R, C, P = y[0], y[1], y[2]
     if linear is False:
         return -((params['cp'] * params['eps'] * s_prey * s_pred * C / (C * s_prey * s_pred + params['nu1']) - params['phi1']) - (
@@ -626,12 +853,26 @@ def pred_GM(s_prey, s_pred, params, y, linear = False):
                 params['phi0'] * s_pred))
 
 def chooser_payoff(choice = 'Gill'):
+    """
+    Function to choose which payoff to use
+    :param choice: Chosen parameter, possible values are 'Gill', the default. Else use instant growth.
+    :return: Consumer fitness and predator fitness
+    """
+
     if choice is 'Gill':
         return [prey_gill, pred_gill]
     else:
         return [prey_GM, pred_GM]
 
 def gilliam_nash(y, params, strat = np.array([0.5, 0.5])):
+    """
+    Deprecated function to find Nash equilibrium when using Gilliams rule
+    :param y:
+    :param params:
+    :param strat:
+    :return:
+    """
+
     s_prey, s_pred = strat[0], strat[1]
 
     der_prey = num_derr(prey_gill(s_prey, s_pred, params, y), s_prey, 0.00000001)
@@ -640,6 +881,14 @@ def gilliam_nash(y, params, strat = np.array([0.5, 0.5])):
     return der_prey, der_pred
 
 def gilliam_nash_find(y, params, strat = np.array([0.5, 0.5])):
+    """
+    Function to find Nash equilibrium when using Gilliams rule, the function is not very robust.
+    :param y:
+    :param params:
+    :param strat:
+    :return:
+    """
+
     gill_strat = optm.root(lambda x: gilliam_nash(y, params, strat = x), x0=strat).x
     gill_strat[gill_strat < 0] = 0
     gill_strat[gill_strat > 1] = 1
@@ -647,6 +896,21 @@ def gilliam_nash_find(y, params, strat = np.array([0.5, 0.5])):
     return gill_strat
 
 def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False, linear = False):
+    """
+    The combined strategy finding, allowing Stackelberg or Nash, and Gilliams rule or Growth as fitness proxy.
+    When finding the Nash equilibrium the initial default is using Iterated Best Response,
+    but if this fails to converge we invoke the function working_nash_eq.
+
+    :param params: System parameters
+    :param y: System state
+    :param stackelberg: Stackelberg equilibrium or not
+    :param x0: Best guess at equilibrium
+    :param Gill: Gilliams rule or not
+    :param linear: Linear loss from being in the arena or not
+    :return: The strategies for the given parameters
+    """
+
+
     error = 1
     its = 0
     s = np.zeros(2)
@@ -696,6 +960,14 @@ def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False,
     return strat[0], strat[1]
 
 def gill_opt_taup(y, tauc, params):
+    """
+    Optimal predator strategy with Gilliams rule
+    :param y:
+    :param tauc:
+    :param params:
+    :return:
+    """
+
     k_1 = params['eps']*y[1]*tauc*params['cp']/params['phi0']
     k_2 = y[1]*tauc
     k_3 = params['nu1']
@@ -721,6 +993,13 @@ def gill_opt_taup(y, tauc, params):
     return x
 
 def opt_taun_analytical_Gill(y, s_pred, params):
+    """
+    Optimal consumer strategy with Gilliams rule
+    :param y:
+    :param tauc:
+    :param params:
+    :return:
+    """
 
     k_1 = y[0] * params['cmax'] * params['eps']
     k_2 = y[0]
@@ -753,6 +1032,14 @@ def opt_taun_analytical_Gill(y, s_pred, params):
 
 
 def nash_eq_find_Gill(y, params, s_prey0):
+
+    """
+    Actual Nash equilibrium finder for Gilliams rule
+    :param y:
+    :param params:
+    :param s_prey0:
+    :return:
+    """
 #    print(opt_taun_analytical_Gill(y, gill_opt_taup(y, 0.5, params)[0], params), s_prey0)
     taun = optm.root(lambda x: opt_taun_analytical_Gill(y, gill_opt_taup(y, x, params)[0], params)[0]-x, x0 = 1).x
     taup = gill_opt_taup(y, taun, params)
@@ -764,6 +1051,14 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 
 
 def heatmap_plotter(data, image_name, ext):
+
+    """
+    The function to create heatmaps
+    :param data: The data to plot, given as a list
+    :param image_name: The name of the resulting heatmap
+    :param ext: The range of the heatmap
+    :return: None, the function saves the heatmaps
+    """
 #    fig, ax = plt.subplots()
 
 
@@ -805,7 +1100,7 @@ def heatmap_plotter(data, image_name, ext):
         x0, x1 = ax.get_xlim()
         y0, y1 = ax.get_ylim()
         ax.set_aspect((x1 - x0) / (y1 - y0))
-        ax.set_xlabel("("+str(i+1) +")" + " Carrying capacity ($\overline{R}$)")
+        ax.set_xlabel("Carrying capacity ($\overline{R}$)")
         ax.set_ylabel("Top predation pressure ($\\xi$)")
 
         i += 1
