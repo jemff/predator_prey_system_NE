@@ -26,7 +26,7 @@ for i in range(len(tableau20)):
     r, g, b = tableau20[i]
     tableau20[i] = (r / 255., g / 255., b / 255.)
 
-settings = {'simulation': False, 'sensitivity': True, 'func_dyn': False, 'flux_stat_func': False, 'heatmap_up': False, 'heatmap_down': False, 'plot': True, 'linear' : False}
+settings = {'simulation': True, 'sensitivity': False, 'func_dyn': False, 'flux_stat_func': False, 'heatmap_up': False, 'heatmap_down': False, 'plot': True, 'linear' : True}
 """
 The boolean settings above indicate whether to generate the data. Term by term:
     'simulation': Runs the time simulation and generates the data
@@ -421,19 +421,19 @@ if settings['plot'] is True:
 #    ax[0,0].text(0, 1.1, "Population levels and behavior (1)", transform=ax[0,0].transAxes)
 #    ax[0,1].text(0, 1.1, "(2)", transform=ax[0,1].transAxes)
 
-    ax[0, 0].text(1.05, 0.9, "(a)", transform=ax[0, 0].transAxes)
-    ax[1, 0].text(1.05, 0.8, "(b)", transform=ax[1, 0].transAxes)
-    ax[2, 0].text(1.05, 0.9, "(c)", transform=ax[2, 0].transAxes)
-    ax[3, 0].text(1.05, 0.8, "(d)", transform=ax[3, 0].transAxes)
-    ax[4, 0].text(1.05, 0.9, "(e)", transform=ax[4, 0].transAxes)
-    ax[5, 0].text(1.05, 0.8, "(f)", transform=ax[5, 0].transAxes)
+    ax[0, 0].text(1.05, 0.9, "(A)", transform=ax[0, 0].transAxes)
+    ax[1, 0].text(1.05, 0.8, "(B)", transform=ax[1, 0].transAxes)
+    ax[2, 0].text(1.05, 0.9, "(C)", transform=ax[2, 0].transAxes)
+    ax[3, 0].text(1.05, 0.8, "(D)", transform=ax[3, 0].transAxes)
+    ax[4, 0].text(1.05, 0.9, "(E)", transform=ax[4, 0].transAxes)
+    ax[5, 0].text(1.05, 0.8, "(F)", transform=ax[5, 0].transAxes)
 
-    ax[0, 1].text(1.05, 0.9, "(g)", transform=ax[0, 1].transAxes)
-    ax[1, 1].text(1.05, 0.8, "(h)", transform=ax[1, 1].transAxes)
-    ax[2, 1].text(1.05, 0.9, "(i)", transform=ax[2, 1].transAxes)
-    ax[3, 1].text(1.05, 0.8, "(j)", transform=ax[3, 1].transAxes)
-    ax[4, 1].text(1.05, 0.9, "(k)", transform=ax[4, 1].transAxes)
-    ax[5, 1].text(1.05, 0.8, "(l)", transform=ax[5, 1].transAxes)
+    ax[0, 1].text(1.05, 0.9, "(G)", transform=ax[0, 1].transAxes)
+    ax[1, 1].text(1.05, 0.8, "(H)", transform=ax[1, 1].transAxes)
+    ax[2, 1].text(1.05, 0.9, "(I)", transform=ax[2, 1].transAxes)
+    ax[3, 1].text(1.05, 0.8, "(J)", transform=ax[3, 1].transAxes)
+    ax[4, 1].text(1.05, 0.9, "(K)", transform=ax[4, 1].transAxes)
+    ax[5, 1].text(1.05, 0.8, "(L)", transform=ax[5, 1].transAxes)
 
     ax[1, 0].set_ylabel('$\\tau_c$')
 
@@ -494,13 +494,13 @@ if settings['plot'] is True:
 #    ax3[0,0].text(0, 1.1, "Production, static vs. optimal (1)", transform=ax3[0,0].transAxes)
 #    ax3[0,1].text(0, 1.1, "(2)", transform=ax3[0,1].transAxes)
 
-    ax3[0, 0].text(1.05, 0.9, "(a)", transform=ax3[0, 0].transAxes)
-    ax3[1, 0].text(1.05, 0.9, "(b)", transform=ax3[1, 0].transAxes)
-    ax3[2, 0].text(1.05, 0.9, "(c)", transform=ax3[2, 0].transAxes)
+    ax3[0, 0].text(1.05, 0.9, "(A)", transform=ax3[0, 0].transAxes)
+    ax3[1, 0].text(1.05, 0.9, "(B)", transform=ax3[1, 0].transAxes)
+    ax3[2, 0].text(1.05, 0.9, "(C)", transform=ax3[2, 0].transAxes)
 
-    ax3[0, 1].text(1.05, 0.9, "(d)", transform=ax3[0, 1].transAxes)
-    ax3[1, 1].text(1.05, 0.9, "(e)", transform=ax3[1, 1].transAxes)
-    ax3[2, 1].text(1.05, 0.9, "(f)", transform=ax3[2, 1].transAxes)
+    ax3[0, 1].text(1.05, 0.9, "(D)", transform=ax3[0, 1].transAxes)
+    ax3[1, 1].text(1.05, 0.9, "(E)", transform=ax3[1, 1].transAxes)
+    ax3[2, 1].text(1.05, 0.9, "(F)", transform=ax3[2, 1].transAxes)
 
     ax3[0,1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
     ax3[0,1].plot(x_axis_phi0, flux_static_values_phi0[:, 0], color = tableau20[0], linestyle = '-')
@@ -544,11 +544,11 @@ if settings['plot'] is True:
 #    ax5[0,0].text(0, 1.1, "Equilibrium consumption rate (1)", transform=ax5[0,0].transAxes)
 #    ax5[0,1].text(0, 1.1, "(2)", transform=ax5[0,1].transAxes)
 
-    ax5[0, 0].text(1.05, 0.9, "(a)", transform=ax5[0, 0].transAxes)
-    ax5[1, 0].text(1.05, 0.9, "(b)", transform=ax5[1, 0].transAxes)
+    ax5[0, 0].text(1.05, 0.9, "(A)", transform=ax5[0, 0].transAxes)
+    ax5[1, 0].text(1.05, 0.9, "(B)", transform=ax5[1, 0].transAxes)
 
-    ax5[0, 1].text(1.05, 0.9, "(c)", transform=ax5[0, 1].transAxes)
-    ax5[1, 1].text(1.05, 0.9, "(d)", transform=ax5[1, 1].transAxes)
+    ax5[0, 1].text(1.05, 0.9, "(C)", transform=ax5[0, 1].transAxes)
+    ax5[1, 1].text(1.05, 0.9, "(D)", transform=ax5[1, 1].transAxes)
 
     ax5[0, 0].plot(x_axis_res, func_nash_GM_res[0], color = tableau20[6], linestyle = '-')
     ax5[0, 0].plot(x_axis_res, func_static_values_res[0], color = tableau20[0], linestyle = '-')
@@ -617,12 +617,12 @@ if settings['plot'] is True:
 
     #ax8[0].text(0, 1.1, "Time Dynamics", transform=ax8[0].transAxes)
 
-    ax8[0].text(1.05, 0.9, "(a)", transform=ax8[0].transAxes)
-    ax8[1].text(1.05, 0.8, "(b)", transform=ax8[1].transAxes)
-    ax8[2].text(1.05, 0.9, "(c)", transform=ax8[2].transAxes)
-    ax8[3].text(1.05, 0.8, "(d)", transform=ax8[3].transAxes)
-    ax8[4].text(1.05, 0.9, "(e)", transform=ax8[4].transAxes)
-    ax8[5].text(1.05, 0.8, "(f)", transform=ax8[5].transAxes)
+    ax8[0].text(1.05, 0.9, "(A)", transform=ax8[0].transAxes)
+    ax8[1].text(1.05, 0.8, "(B)", transform=ax8[1].transAxes)
+    ax8[2].text(1.05, 0.9, "(C)", transform=ax8[2].transAxes)
+    ax8[3].text(1.05, 0.8, "(D)", transform=ax8[3].transAxes)
+    ax8[4].text(1.05, 0.9, "(E)", transform=ax8[4].transAxes)
+    ax8[5].text(1.05, 0.8, "(F)", transform=ax8[5].transAxes)
     #ax8[5].set_title('Population dynamics of optimal populations with bottom-up control')
     ax8[0].set_ylabel('Resource, $m_c\cdot m^{-3}$')
     ax8[-1].set_xlabel('Months')
