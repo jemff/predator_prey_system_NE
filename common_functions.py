@@ -2,6 +2,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.optimize as optm
+import casadi as ca
 
 def opt_taun_linear(y, taup, params, v = 0.1, s=100, eps = 0.14, nu = 0.545454545):
     R, C, P = y[0], y[1], y[2]
@@ -222,7 +223,43 @@ def nash_eq_find(y, params, opt_prey = True, opt_pred = True):
         taup = np.array([1])
     return taun, taup
 
+def complementary_nash(y, params, taun_previous = np.array([1]), opt_prey = True, opt_pred = True, linear =False):
+    mu = ca.SX.sym('mu', 2)
+    sigma = ca.SX.sym('sigma', 1)
+    sigma_p = ca.SX.sym('sigma_p', 1)
 
+    gamma0 = 1/(params['cmax']*params['epsn'])
+    gamma1 = params['nu0']/(params['cmax']*params['epsn']*y[0])
+    gamma2 = params['nu1']/(params['cp']*y[2])
+    gamma3 = y[1]/(params['cp']*y[2])
+    gamma4 = 1/(params['cp']*params['epsn'])
+    gamma5 = params['nu0']/(params['cp']*params['epsn']*y[1])
+    gamma6 = 2*params['phi0']
+
+    df1 = (gamma1 / (gamma0*sigma + gamma1) ** 2 - gamma2*sigma_p / (gamma2 + gamma3 * sigma_p * sigma)**2)
+    df2 = (gamma5 * sigma / (gamma4*sigma_p * sigma + gamma5) ** 2 - sigma_p * gamma6)
+    w0 = 1 - sigma
+    w1 = 1 - sigma_p
+
+    df = ca.vertcat(df1, df2)
+    g1 = df + mu
+    g = ca.vertcat(g1, w0, w1)
+
+    f = ca.dot(mu, ca.vertcat(w0, w1))
+    sigmas = ca.vertcat(sigma, sigma_p)
+    x = ca.vertcat(*[sigmas, mu])
+    lbg = np.zeros(4)
+    ubg = ca.vertcat(0, 0, ca.inf, ca.inf)
+    s_opts = {'ipopt': {'print_level': 1}}
+    prob = {'x': x, 'f': f, 'g': g}
+    lbx = np.zeros(4)
+    solver = ca.nlpsol('solver', 'ipopt', prob, s_opts)
+
+    sol = solver(lbx=lbx, lbg=lbg, ubg=ubg)
+    print("Solved")
+    x_out = np.array(sol['x']).flatten()
+
+    return x_out[0:2]
 
 def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = True, opt_pred = True, linear = False):
     """
@@ -259,8 +296,8 @@ def working_nash_eq_find(y, params, taun_previous = np.array([1]), opt_prey = Tr
                                                   params['nu0'], params=params, taun_previous=taun_previous) - 10*strat,
                 x0 = taun_previous)
 
-            taun = least_sq_obj.x
-            print("Err2", params['phi0'], least_sq_obj) #Printing when we are in the least-squares case, allowing manual inspection of whether the result is reasonable
+            taun = least_sq_obj.x #taun_previous
+            #print("Err2", params['phi0'], least_sq_obj) #Printing when we are in the least-squares case, allowing manual inspection of whether the result is reasonable
         taup = opt_taup_find(y, taun, params, linear = linear)[0]
 #        print(taun, taup, root_obj.message, "Outer root")
 
@@ -772,13 +809,17 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None, taun_previous = n
         tauc = np.squeeze(tauc)
 
 #    print(tauc)
+    if np.max(tauc)>0 or np.min(tauc)<0:
+        opts = np.array([0,1])
+        vals = np.zeros(2)
+        vals[1] = prey_GM(opts[1], taup, params, y)
+        vals[0] = prey_GM(opts[0], taup, params, y)
 
-    tauc[tauc>1] = 1
-#    if len(tauc[tauc<0]) != 0:
-#        tauc = taun_linear(y, taup, params)
+        tauc = opts[np.argmin(vals)]
 
-    tauc[tauc<0] = 0.000001
+
     tauc_alt = np.copy(tauc)
+
 #    this = prey_GM(tauc, taup, params, y)
 #    that = prey_GM(1, taup, params, y)
 #    if that < this:
@@ -787,7 +828,7 @@ def opt_taun_analytical(y, taup, s, eps, gamma, params = None, taun_previous = n
         #Numerical optimal consumer strategy
         tauc = optm.minimize(lambda x: prey_GM(x, taup, params, y), x0 = taun_previous, bounds = [(0.00000001, 1)]).x
     tauc[np.isnan(tauc)] = 1
-
+#    print(tauc, tauc_alt, prey_GM(tauc, taup, params, y), prey_GM(tauc_alt, taup, params, y))
     return tauc
 
 
@@ -804,7 +845,7 @@ def prey_gill(s_prey, s_pred, params, y):
 
     R, C, P = y[0], y[1], y[2]
 
-    return -(params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['mu0'] * s_prey - params['mu1']) / (
+    return -(params['eps']*params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['mu0'] * s_prey - params['mu1']) / (
                 params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + params['nu1']))
 
 def pred_gill(s_prey, s_pred, params, y):
@@ -832,8 +873,8 @@ def prey_GM(s_prey, s_pred, params, y):
     """
     R, C, P = y[0], y[1], y[2]
 
-    return -((params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) - params['mu0'] * s_prey - params['mu1']) - (
-            params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + params['nu1'])))
+    return -(params['epsn']*params['cmax'] * s_prey * R / (s_prey * R + params['nu0']) -
+            params['cp'] * s_pred * s_prey * P / (s_pred * s_prey * C + params['nu1']))
 
 def pred_GM(s_prey, s_pred, params, y, linear = False):
     """
@@ -938,10 +979,10 @@ def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False,
             its += 1
             if its > 100:
                 error = 0
-                tauc, taup = working_nash_eq_find(y, params, taun_previous = x0[0], linear = linear)
+                tauc, taup = complementary_nash(y, params, taun_previous = x0[0], linear = linear)
                 strat[0] = tauc
                 strat[1] = taup
-                #print("Errr", params['phi0'])
+                print("Invoked fall back")
 
     elif stackelberg is False and Gill is True:
         s = np.zeros(2)

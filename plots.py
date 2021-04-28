@@ -26,7 +26,7 @@ for i in range(len(tableau20)):
     r, g, b = tableau20[i]
     tableau20[i] = (r / 255., g / 255., b / 255.)
 
-settings = {'simulation': True, 'sensitivity': False, 'func_dyn': False, 'flux_stat_func': False, 'heatmap_up': False, 'heatmap_down': False, 'plot': True, 'linear' : True}
+settings = {'simulation': False, 'sensitivity': False, 'func_dyn': True, 'flux_stat_func': False, 'heatmap_up': False, 'heatmap_down': False, 'plot': True, 'linear' : False}
 """
 The boolean settings above indicate whether to generate the data. Term by term:
     'simulation': Runs the time simulation and generates the data
@@ -37,18 +37,16 @@ The boolean settings above indicate whether to generate the data. Term by term:
     'heatmap_down': Deprecated; Originally to split heatmap generation into 2 stages to save time
     'plot': Generate all plots
     'linear': Indicates the predator loss from staying in the arena, default is quadratic. 
-    
-    
 """
 
 mass_vector = np.array([1, 1, 100])
 
-cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector, v = 0.07) #Metabolic parameter calculation
+cost_of_living, nu, growth_max, lam = parameter_calculator_mass(mass_vector, v = 0.08) #Metabolic parameter calculation
 base = 1
 phi1 = cost_of_living[1] #Predator metabolic loss
 phi0 = cost_of_living[1] #Predator loss from staying in the foraging arena, note that this parameter is varied.
-eps = 0.15 #Conversion factor
-epsn = 0.15
+eps = 0.3 #Conversion factor
+epsn = 0.3
 
 cmax, cp = growth_max #Maximal growth rates
 mu0 = 0 #Consumer loss from staying in the arena
@@ -56,10 +54,10 @@ mu1 = cost_of_living[0] #Consumer metabolic loss
 nu0 = nu[0] #nu
 nu1 = nu[1] #nu
 
-its = 500 #The fineness of the bottom-up pressure grid
-its_mort = 800 #The fineness of the top-down pressure grid
-fidelity = 40 #Number of lines for emergent functional response
-pred_var_fid = 40
+its = 50 #The fineness of the bottom-up pressure grid
+its_mort = 50 #The fineness of the top-down pressure grid
+fidelity = 30 #Number of lines for emergent functional response
+pred_var_fid = 30
 
 print(phi0)
 
@@ -70,19 +68,20 @@ params_ext = {'cmax': cmax, 'mu0': mu0, 'mu1': mu1, 'eps': eps, 'epsn': epsn, 'c
 print(params_ext)
 if settings['sensitivity'] is True:
     # np.array([1.29649220e+01, 5.55740326e-01, 1.11775631e-03])#0.5*np.array([0.9500123,  0.4147732,  0.01282899 ])
-    params_ext['phi0'] = 0.3*phi1
-    init = static_eq_calc(params_ext)
+    params_ext['phi0'] = 0.5*phi1
+    init = np.array([0.54630611, 0.17370847, 0.0017048])#static_eq_calc(params_ext)
     reverse = True
-    start = 1
-    stop = 8
+    start = 0.2
+    stop = 2
     x_axis_res = np.linspace(start, stop, its)
     print(params_ext)
     nash_GM_res, strat_nash_GM_res = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2, init, params_ext, start, stop, its, reverse = reverse, linear = settings['linear']) #Generating the bottom-up variation based on a first-order continuation procedure
 
-    params_ext['resource'] = 3
-    start = 0.15*phi1
-    stop = 0.9*phi1
+    params_ext['resource'] = 1
+    start = 0.3 * phi1
+    stop = 3 * phi1
 
+    init = 0.25* np.array([2.18788587, 0.17012115, 0.00327292])
     x_axis_phi0 = np.linspace(start, stop, its_mort)
 
     nash_GM_phi0, strat_nash_GM_phi0 = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2, init, params_ext, start, stop, its_mort, reverse = False, type = 'phi0', linear = settings['linear']) #Generating the top-down variation based on a first-order continuation procedure
@@ -115,18 +114,18 @@ elif settings['sensitivity'] is False:  # Split into simulation, sensisitivty, d
     #     results = np.load(f)
 
 if settings['simulation'] is True:
-    params_ext['resource'] = 3
-    params_ext['phi0'] = 0.3*phi1
-    t_end = 24
+    params_ext['resource'] = 0.5
+    params_ext['phi0'] = 0.6*phi1
+    t_end = 96
 
-    init = static_eq_calc(params_ext)*1.1 #The function static_eq_calc calculates the equilibrium of the system with constant behavior
+    init = static_eq_calc(params_ext)*2 #The function static_eq_calc calculates the equilibrium of the system with constant behavior
     print(init)
     init[-1] = init[-1]    # np.array([0.5383403,  0.23503815, 0.00726976]) #np.array([5.753812957581866, 5.490194692112937, 1.626801718856221])#
     # params_ext['resource'] = 16 This si for the low-resource paradigm
-    tim, sol, strat = num_sol.semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
+    tim, sol, strat = num_sol.semi_implicit_euler(t_end, init, 0.01, lambda t, y, tn, tp:
     num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp, linear = settings['linear']), params_ext, opt_prey=True,
                                                   opt_pred=True, linear = settings['linear'])
-    tim, sol_2, strat_2 = num_sol.semi_implicit_euler(t_end, init, 0.0001, lambda t, y, tn, tp:
+    tim, sol_2, strat_2 = num_sol.semi_implicit_euler(t_end, init, 0.01, lambda t, y, tn, tp:
     num_sol.optimal_behavior_trajectories(t, y, params_ext, taun=tn, taup=tp), params_ext,
                                                       opt_prey=False, opt_pred=False)
 
@@ -151,7 +150,7 @@ elif settings['simulation'] is False:
         strat_2 = np.load(g)
 
 if settings['heatmap_up'] is True:
-    its_heat = its
+    its_heat = int(its) # int(its/2)
     input_data = []
     for i in range(its_mort):
         """
@@ -162,11 +161,11 @@ if settings['heatmap_up'] is True:
         par_t['phi0'] = x_axis_phi0[i]
         input_data.append({'values': nash_GM_phi0[i], 'parameters': par_t, 'strat': strat_nash_GM_phi0[i], 'iteration': i})
 
-    start = x_axis_res[0]
+    start = 1 #x_axis_res[0]
     stop = x_axis_res[-1]
-    reverse = True
+    reverse = False
 
-    agents = 4 #The number of simultaneous processes, can be adjusted to whatever is optimal for the current computing setup.
+    agents = 7 #The number of simultaneous processes, can be adjusted to whatever is optimal for the current computing setup.
 
 
     def temp_func(ivp, its = its_heat, start = start, stop = stop, settings = settings, reverse = reverse):
@@ -202,6 +201,33 @@ if settings['heatmap_up'] is True:
     #grid_data = temp_func(input_data[0])
     #print(grid_data[0], strat_nash_GM_phi0[0], nash_GM_phi0[0])
     grid_data = np.array(grid_data)
+
+
+    start = x_axis_res[0] #Change to 0.6*phi0, but for now we use phi0 for stability reasons
+    stop = 1
+    reverse = True
+    def temp_func(ivp, its = its_heat, start = start, stop = stop, settings = settings, reverse = reverse):
+
+        outputs = np.zeros((its, 5))
+        values, strategies = an_sol.continuation_func_ODE(an_sol.optimal_behavior_trajectories_version_2,
+                                     ivp['values'], ivp['parameters'], start, stop, its,
+                                     reverse=reverse, type='resource',
+                                     linear=settings['linear'], strat=ivp['strat'], verbose=False)
+        outputs[:, 0:3] = values
+        outputs[:, 3:] = strategies
+        print(ivp['iteration'], start, stop)
+        return outputs
+
+    #for i in range(int(its/60)):
+    #    print(i*60, input_data[i*60])
+    #    temp_func(input_data[i*60])
+
+    with Pool(processes = agents) as pool:
+        grid_data_down = pool.map(temp_func, input_data)
+
+    grid_data_down = np.array(grid_data_down)
+
+    grid_data = np.concatenate([grid_data_down.T, grid_data.T]).T
     with open('heatmap_data.npy', 'wb') as g:
         np.save(g, grid_data)
 
@@ -211,21 +237,18 @@ elif settings['heatmap_up'] is False:
 
 
 if settings['heatmap_down'] is True:
-    """
-    Deprecated; Basically same structure as above. 
-    """
-    its_heat = int(its*1.5)
+    its_heat = int(its)  #int(its/2)
     input_data = []
     for i in range(its_mort):
         par_t = copy.deepcopy(params_ext)
         par_t['phi0'] = x_axis_phi0[i]
         input_data.append({'values': nash_GM_phi0[i], 'parameters': par_t, 'strat': strat_nash_GM_phi0[i], 'iteration': i})
 
-    start = 1 #Change to 0.6*phi0, but for now we use phi0 for stability reasons
-    stop = 10
+    start = x_axis_res[0] #Change to 0.6*phi0, but for now we use phi0 for stability reasons
+    stop = 1
     reverse = True
 
-    agents = 4
+    agents = 7
     def temp_func(ivp, its = its_heat, start = start, stop = stop, settings = settings, reverse = reverse):
 
         outputs = np.zeros((its, 5))
@@ -249,9 +272,9 @@ if settings['heatmap_down'] is True:
     with open('heatmap_down_data.npy', 'wb') as g:
         np.save(g, grid_data_down)
 
-#elif settings['heatmap_down'] is False:
-#    with open('heatmap_down_data.npy', 'rb') as g:  # Save time by not generating all the data every time.
-#        grid_data_down = np.load(g)
+elif settings['heatmap_down'] is False:
+    with open('heatmap_down_data.npy', 'rb') as g:  # Save time by not generating all the data every time.
+        grid_data_down = np.load(g)
 
 
 if settings['func_dyn'] is True:
@@ -260,10 +283,10 @@ if settings['func_dyn'] is True:
         The code uses zeroth order continuation to generate the Nash equilibria, as we quickly move away from the area where iterated best response works well. 
     """
 
-    res_m = nash_GM_res[int(its/8), 0]
-    prey_m = nash_GM_res[int(its/8), 1]
+    res_m = nash_GM_res[int(its/3), 0]
+    prey_m = nash_GM_res[int(its/3), 1]
 
-    pred_m = np.linspace(0.001*nash_GM_res[int(its/8), 2], 45*nash_GM_res[int(its/8), 2], pred_var_fid + 1)
+    pred_m = np.linspace(0.001*nash_GM_res[int(its/3), 2], 2.5*nash_GM_res[int(its/3), 2], pred_var_fid + 1)
 
     print("Values", nash_GM_res[int(its/2)], strat_nash_GM_res[int(its/2)])
 
@@ -274,7 +297,7 @@ if settings['func_dyn'] is True:
 
     frp = np.zeros((fidelity + 1, pred_var_fid+1, 2))
     frc = np.zeros((fidelity + 1, pred_var_fid+1, 2))
-    resource_variation = np.linspace(0.001*res_m, 0.5*res_m, fidelity + 1)
+    resource_variation = np.linspace(0.001*res_m, 2*res_m, fidelity + 1)
     prey_variation = np.linspace(0.001*prey_m, 2*prey_m, fidelity + 1)
 
 

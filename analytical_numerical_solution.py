@@ -227,7 +227,8 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
         dire = - 1
     params_int[type] = interval[0]
     if root is True:
-        big_old_values[0] = optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, method='hybr').x
+        big_old_values[0] = optm.minimize(lambda y: (np.linalg.norm(f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear)))**2, x0=x0, method = 'Nelder-Mead').x
+        #optm.root(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, method='hybr').x
     else:
         big_old_values[0] = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, bounds = (0, np.inf)).x
 
@@ -236,34 +237,39 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
     for i in range(1,its):
         #print(i, params_int)
         params_int[type] = interval[i]
-        cont_guess = big_old_values[i-1] + dire*step_size*continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root, linear = linear)
-        cont_guess[cont_guess < 0] = 0
+        #cont_guess = big_old_values[i-1] - f(big_old_values[i-1], params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear)/continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root, linear = linear) #dire*step_size*continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root, linear = linear)
+        #+ continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root, linear = linear)*dire*step_size
+        #cont_guess[cont_guess < 0] = 0
+        cont_guess = big_old_values[i-1]
         if root is True:
             optm_obj = optm.root(lambda y: f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear), x0=cont_guess, method='hybr')
-            #optm.newton(lambda y: np.array([1, 10, 10**3])*f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear), x0=big_old_values[i-1], x1=cont_guess)
             x_temp = optm_obj.x
-            success_try = True
-            if optm_obj.success is False or np.linalg.norm(x_temp-big_old_values[i-1])>step_size*np.min(big_old_values[i-1]):
-                success_try = False
-                inner_its = 0
-                while success_try is False and inner_its<10: #In case the fixed point was not found with the continuation guess, keep trying values that are slightly bigger than the previous value, and if this ends up failing use the continuation guess as the fixed point.
-                    optm_obj = optm.root(
-                        lambda y: f(y, params_int, nash=nash, strat=all_strats[i - 1], Gill=Gill, linear=linear),
-                        x0=big_old_values[i-1]+dire*its*step_size*big_old_values[i-1], method='hybr')
-                    inner_its+=1
-                    success_try = copy.deepcopy(optm_obj.success)
-                if success_try is False:
-                    x_temp = cont_guess #big_old_values[i-1]
+            #print(optm_obj)
+            success_try = optm_obj.success
+            #if optm_obj.success is False or np.linalg.norm(x_temp-big_old_values[i-1])>step_size*np.min(big_old_values[i-1]):
+            #    success_try = False
+            #    inner_its = 0
+            #    while success_try is False and inner_its<10: #In case the fixed point was not found with the continuation guess, keep trying values that are slightly bigger than the previous value, and if this ends up failing use the continuation guess as the fixed point.
+            #        optm_obj = optm.root(
+            #            lambda y: f(y, params_int, nash=nash, strat=all_strats[i - 1], Gill=Gill, linear=linear),
+            #            x0=big_old_values[i-1]+dire*its*step_size*big_old_values[i-1], method='hybr')
+            #        inner_its+=1
+            #        success_try = copy.deepcopy(optm_obj.success)
+            if success_try is False:
+                x_temp = optm.minimize(lambda y: (np.linalg.norm(f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear)))**2, x0=cont_guess, method = 'Nelder-Mead').x
+
+                    #big_old_values[i-1] + continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root, linear = linear)*dire*step_size #cont_guess #big_old_values[i-1]
                 #print("Oh man", Gill, nash)
         else:
             optm_obj = optm.least_squares(lambda y: f(y, params_int, nash = nash, strat = strat, Gill = Gill, linear = linear), x0=x0, bounds = (0, np.inf))
-            print(optm_obj)
+            #print(optm_obj)
             x_temp = optm_obj.x
 
         big_old_values[i] = x_temp
         if verbose is True:
             print(x_temp, optm_obj.success, cont_guess, type) #Print continuation output for manual inspection of success while running
-
+            if x_temp[0]>50:
+                print(params_int, continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root, linear = linear))
         if x_temp[-1] < 10**(-10):
             big_old_values[i] = big_old_values[i-1]
             print(params_int['phi0'])
