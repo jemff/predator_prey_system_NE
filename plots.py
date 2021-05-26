@@ -56,8 +56,8 @@ nu1 = nu[1] #nu
 
 its = 50 #The fineness of the bottom-up pressure grid
 its_mort = 50 #The fineness of the top-down pressure grid
-fidelity = 30 #Number of lines for emergent functional response
-pred_var_fid = 30
+fidelity = 20 #Number of lines for emergent functional response
+pred_var_fid = 20
 
 print(phi0)
 
@@ -286,7 +286,7 @@ if settings['func_dyn'] is True:
     res_m = nash_GM_res[int(its/3), 0]
     prey_m = nash_GM_res[int(its/3), 1]
 
-    pred_m = np.linspace(0.001*nash_GM_res[int(its/3), 2], 2.5*nash_GM_res[int(its/3), 2], pred_var_fid + 1)
+    pred_m = np.linspace(0.8*nash_GM_res[int(its/3), 2], 2.5*nash_GM_res[int(its/3), 2], pred_var_fid + 1)
 
     print("Values", nash_GM_res[int(its/2)], strat_nash_GM_res[int(its/2)])
 
@@ -610,7 +610,7 @@ if settings['plot'] is True:
              label="P consumption, static", color = tableau20[0], linestyle = '-')
     dc = []
     for k in range(fidelity+1):
-        dyn_col = k*np.array(tableau20[0])+(fidelity - k)*np.array(tableau20[6])
+        dyn_col = (fidelity-k)*np.array(tableau20[0])+k*np.array(tableau20[6])
         print(dyn_col)
         dc.append((dyn_col[0]/max(dyn_col), dyn_col[1]/max(dyn_col), dyn_col[2]/max(dyn_col)))
         ax6[1].plot(prey_variation, frp[:, k, 0] * frp[:, k, 1] * prey_variation / (
