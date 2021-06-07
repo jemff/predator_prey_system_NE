@@ -616,7 +616,7 @@ if settings['plot'] is True:
         ax6[1].plot(prey_variation, frp[:, k, 0] * frp[:, k, 1] * prey_variation / (
                     frp[:, k, 0] * frp[:, k, 1] * prey_variation + params_ext['nu0']), color = dc[k], linestyle = '-',
              label="P consumption, optimal", alpha = 0.2) #Changed to relative functional
-    ax6[1].set_xlabel("Prey in $m_c\cdot m^{-3}$")
+    ax6[1].set_xlabel("Consumers $(C)$ in $m_c\cdot m^{-3}$")
     ax6[0].set_ylabel("Consumption/Max")
     ax6[0].plot(resource_variation, resource_variation / (resource_variation + params_ext['nu0']),
              color = tableau20[0], linestyle = '-', label="C consumption, static")
@@ -624,7 +624,7 @@ if settings['plot'] is True:
         ax6[0].plot(resource_variation,
                  frc[:, k, 0] * resource_variation / (frc[:, k, 0] * resource_variation + params_ext['nu0']),
                  color = dc[k], linestyle = '-', label="C consumption, optimal", alpha = 0.2) #alpha = 0.5
-    ax6[0].set_xlabel("Resource in $m_c\cdot m^{-3}$")
+    ax6[0].set_xlabel("Resource $(R)$ in $m_c\cdot m^{-3}$")
     fig6.tight_layout()
     if settings['linear'] is False:
         plt.savefig("Functional_response_consumer.pdf")
