@@ -256,7 +256,9 @@ def continuation_func_ODE(f, x0, params, start, stop, its, reverse = True, strat
             #        inner_its+=1
             #        success_try = copy.deepcopy(optm_obj.success)
             if success_try is False:
-                x_temp = optm.minimize(lambda y: (np.linalg.norm(f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear)))**2, x0=cont_guess, method = 'Nelder-Mead').x
+                trial_2 = optm.minimize(lambda y: (np.sum((f(y, params_int, nash = nash, strat = all_strats[i-1], Gill = Gill, linear = linear))**2)), x0=cont_guess, method = 'Nelder-Mead')
+                print(trial_2.success)
+                x_temp = trial_2.x
 
                     #big_old_values[i-1] + continuation_slope_ODE(f, big_old_values[i-1], params_int, strat = all_strats[i-1], type = type, h = h, nash = nash, root = root, linear = linear)*dire*step_size #cont_guess #big_old_values[i-1]
                 #print("Oh man", Gill, nash)

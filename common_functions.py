@@ -243,13 +243,14 @@ def complementary_nash(y, params, taun_previous = np.array([1]), opt_prey = True
 
     df = ca.vertcat(df1, df2)
     g1 = df + mu
-    g = ca.vertcat(g1, w0, w1)
+    g2 = ca.dot(mu, ca.vertcat(w0, w1))
+    g = ca.vertcat(g1, g2, w0, w1)
 
-    f = ca.dot(mu, ca.vertcat(w0, w1))
+    f = 0
     sigmas = ca.vertcat(sigma, sigma_p)
     x = ca.vertcat(*[sigmas, mu])
-    lbg = np.zeros(4)
-    ubg = ca.vertcat(0, 0, ca.inf, ca.inf)
+    lbg = np.zeros(5)
+    ubg = ca.vertcat(0, 0, 0, ca.inf, ca.inf)
     s_opts = {'ipopt': {'print_level': 1}}
     prob = {'x': x, 'f': f, 'g': g}
     lbx = np.zeros(4)
@@ -936,7 +937,7 @@ def gilliam_nash_find(y, params, strat = np.array([0.5, 0.5])):
 
     return gill_strat
 
-def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False, linear = False):
+def combined_strat_finder(params, y, stackelberg = False, x0=np.array([0.5, 0.5]), Gill = False, linear = False):
     """
     The combined strategy finding, allowing Stackelberg or Nash, and Gilliams rule or Growth as fitness proxy.
     When finding the Nash equilibrium the initial default is using Iterated Best Response,
@@ -971,8 +972,8 @@ def combined_strat_finder(params, y, stackelberg = False, x0=None, Gill = False,
     elif stackelberg is False and Gill is False:
         s = np.zeros(2)
         while error > 10 ** (-8):
-            s[0] = optm.minimize(lambda x: prey_GM(x, strat[1], params, y), x0 = strat[0], bounds = [(0.00000001, 1)]).x
-            s[1] = optm.minimize(lambda x: pred_GM(strat[0], x, params, y, linear = linear), x0 = strat[1], bounds = [(0.00000001, 1)]).x
+            s[0] = optm.minimize(lambda x: prey_GM(x, strat[1], params, y), x0 = strat[0], bounds = [(0.00000000, 1)]).x
+            s[1] = optm.minimize(lambda x: pred_GM(strat[0], x, params, y, linear = linear), x0 = strat[1], bounds = [(0.00000000, 1)]).x
             error = max(np.abs(s - strat))
             strat = np.copy(s)
 
@@ -1122,7 +1123,7 @@ def heatmap_plotter(data, image_name, ext):
 
 
     # Set up figure and image grid
-    fig = plt.figure(figsize=(16/2.54, 16/2.54))
+    fig = plt.figure(figsize=(12/2.54, 12/2.54))
 
     grid = ImageGrid(fig, 111,  # as in plt.subplot(111)
                      nrows_ncols=(1, len(data)),
@@ -1141,8 +1142,8 @@ def heatmap_plotter(data, image_name, ext):
         x0, x1 = ax.get_xlim()
         y0, y1 = ax.get_ylim()
         ax.set_aspect((x1 - x0) / (y1 - y0))
-        ax.set_xlabel("Carrying capacity ($\overline{R}$)")
-        ax.set_ylabel("Top predation pressure ($\\xi$)")
+        ax.set_xlabel("Carrying capacity ($\overline{R}$) \n $m_c\cdot m^{-3}$")
+        ax.set_ylabel("Top predation pressure ($\\xi$) \n $month^{-1}$ ")
 
         i += 1
 
