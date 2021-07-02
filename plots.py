@@ -13,7 +13,7 @@ This file generates all data and plots for the article "Lower productivity and h
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
-plt.rc('font', size = 10)
+plt.rc('font', size = 8)
 # These are the "Tableau 20" colors as RGB.
 tableau20 = [(31, 119, 180), (174, 199, 232), (255, 127, 14), (255, 187, 120),
              (44, 160, 44), (152, 223, 138), (214, 39, 40), (255, 152, 150), 
@@ -444,10 +444,10 @@ if settings['plot'] is True:
 #    print(frp[int(fidelity/2), :, 1], frp[0, :, 1], frp[0, :, 0])
 
     fig, ax = plt.subplots(6, 2, gridspec_kw={'height_ratios': [1, 0.5, 1, 0.5, 1, 0.5]}, sharex='col', sharey = 'row')
-    fig.set_size_inches((12/2.54, 16/2.54))
+    fig.set_size_inches((12/2.54, 14/2.54))
 
-    ax[0, 0].set_ylabel('Resource,\n $m_c \cdot m^{-3}$')
-    ax[-1, 0].set_xlabel('Carrying capacity $(\overline{R})$ \n $m_c\cdot m^{-3}$')
+    ax[0, 0].set_ylabel('Resource,\n $m_c$  m$^{-3}$')
+    ax[-1, 0].set_xlabel('Carrying capacity $(\overline{R})$ \n $m_c$ m$^{-3}$')
 
 
     ax[0, 0].plot(x_axis_res, nash_GM_res[:, 0], color = tableau20[6], linestyle = '-')
@@ -456,7 +456,7 @@ if settings['plot'] is True:
 #    ax[0,1].text(0, 1.1, "(2)", transform=ax[0,1].transAxes)
 
     ax[0, 0].text(1.05, 0.9, "(a)", transform=ax[0, 0].transAxes)
-    ax[1, 0].text(1.05, 0.8, "(B)", transform=ax[1, 0].transAxes)
+    ax[1, 0].text(1.05, 0.8, "(b)", transform=ax[1, 0].transAxes)
     ax[2, 0].text(1.05, 0.9, "(c)", transform=ax[2, 0].transAxes)
     ax[3, 0].text(1.05, 0.8, "(d)", transform=ax[3, 0].transAxes)
     ax[4, 0].text(1.05, 0.9, "(e)", transform=ax[4, 0].transAxes)
@@ -474,17 +474,17 @@ if settings['plot'] is True:
     ax[1, 0].fill_between(x_axis_res, strat_nash_GM_res[:, 0], y2 =0, alpha = 0.5, color = tableau20[6], linestyle = '-')
     ax[1, 0].set_ylim((0, 1))
 
-    ax[2, 0].set_ylabel('Consumer, \n $10^{-1} m_c\cdot m^{-3}$')
+    ax[2, 0].set_ylabel('Consumer, \n $10^{-1} m_c$ m$^{-3}$')
 
     ax[2, 0].plot(x_axis_res, 10*nash_GM_res[:, 1], color =  tableau20[6], linestyle = '-')
     ax[2, 0].plot(x_axis_res, 10*static_values_res[:, 1], color = tableau20[0], linestyle = '-')
 
-    ax[3, 0].set_ylabel('$\\tau_p \cdot \\tau_c$')
+    ax[3, 0].set_ylabel('$\\tau_p  \\tau_c$')
 
     ax[3, 0].fill_between(x_axis_res, strat_nash_GM_res[:, 1]*strat_nash_GM_res[:, 0], y2 = 0, alpha = 0.5, color = tableau20[6], linestyle = '-')
     ax[3, 0].set_ylim((0, 1))
 
-    ax[4, 0].set_ylabel('Predator, \n $10^{-3} m_c\cdot m^{-3}$')
+    ax[4, 0].set_ylabel('Predator, \n $10^{-3} m_c$ m$^{-3}$')
 
     ax[4, 0].plot(x_axis_res, 1000*nash_GM_res[:, 2], color = tableau20[6], linestyle = '-')
     ax[4, 0].plot(x_axis_res, 1000*static_values_res[:, 2], color = tableau20[0], linestyle = '-')
@@ -493,7 +493,7 @@ if settings['plot'] is True:
     ax[5, 0].set_ylim((0, 1))
     ax[5, 0].fill_between(x_axis_res, strat_nash_GM_res[:, 1], y2 = 0, alpha = 0.5, color = tableau20[6], linestyle = '-')
 
-    #    ax[1, 0].set_ylabel('Resource, $m_c\cdot m^{-3}$')
+    #    ax[1, 0].set_ylabel('Resource, $m_c m^{-3}$')
     ax[-1, 1].set_xlabel('Top predation pressure ($\\xi$) \n $month^{-1}$')
 
     ax[0, 1].plot(x_axis_phi0, nash_GM_phi0[:, 0], color=tableau20[6], linestyle='-')
@@ -511,8 +511,8 @@ if settings['plot'] is True:
                           y2=0, color=tableau20[6], alpha=0.5,
                           linestyle='-')
 
-    ax[4, 1].plot(x_axis_phi0, nash_GM_phi0[:, 2], color=tableau20[6], linestyle='-')
-    ax[4, 1].plot(x_axis_phi0, static_values_phi0[:, 2], color=tableau20[0], linestyle='-')
+    ax[4, 1].plot(x_axis_phi0, 10**3*nash_GM_phi0[:, 2], color=tableau20[6], linestyle='-')
+    ax[4, 1].plot(x_axis_phi0, 10**3*static_values_phi0[:, 2], color=tableau20[0], linestyle='-')
 
     ax[5, 1].fill_between(x_axis_phi0, strat_nash_GM_phi0[:, 1], y2=0, alpha=0.5,
                           color=tableau20[6], linestyle='-')
@@ -524,7 +524,7 @@ if settings['plot'] is True:
 
 
     fig3, ax3 = plt.subplots(3, 2, sharex='col', sharey = 'row')
-    fig3.set_size_inches((12/2.54, 16/2.54))
+    fig3.set_size_inches((12/2.54, 14/2.54))
 #    ax3[0,0].text(0, 1.1, "Production, static vs. optimal (1)", transform=ax3[0,0].transAxes)
 #    ax3[0,1].text(0, 1.1, "(2)", transform=ax3[0,1].transAxes)
 
@@ -539,9 +539,9 @@ if settings['plot'] is True:
     ax3[0,1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 0], color = tableau20[6], linestyle = '-')
     ax3[0,1].plot(x_axis_phi0, flux_static_values_phi0[:, 0], color = tableau20[0], linestyle = '-')
     ax3[1,1].plot(x_axis_phi0, flux_nash_GM_phi0[:, 1], color = tableau20[6], linestyle = '-')
-    ax3[0, 0].set_ylabel('$R\\to C$, \n $m_c \cdot month^{-1}$')
-    ax3[1, 0].set_ylabel('$C\\to P$, \n $m_c \cdot month^{-1}$')
-    ax3[2, 0].set_ylabel('$P\\to Top$, \n $m_c \cdot month^{-1}$')
+    ax3[0, 0].set_ylabel('$R\\to C$, \n $m_c$ month$^{-1}$')
+    ax3[1, 0].set_ylabel('$C\\to P$, \n $m_c$ month$^{-1}$')
+    ax3[2, 0].set_ylabel('$P\\to Top$, \n $m_c$ month$^{-1}$')
 
 
     ax3[1,1].plot(x_axis_phi0, flux_static_values_phi0[:, 1], color = tableau20[0], linestyle = '-')
@@ -558,9 +558,9 @@ if settings['plot'] is True:
     ax3[2,0].plot(x_axis_res, flux_static_values_res[2], color = tableau20[0], linestyle = '-')
     #ax3[1].plot(x_axis_res, flux_static_values_res[0]/flux_static_values_res[0], color = tableau20[0], linestyle = '-')
 
-    ax3[-1,1].set_xlabel('Top predation pressure ($\\xi$) \n $month^{-1}$')
+    ax3[-1,1].set_xlabel('Top predation pressure ($\\xi$) \n month$^{-1}$')
 
-    ax3[-1,0].set_xlabel('Carrying capacity ($\overline{R}$) $m_c\cdot m^{-3}$')
+    ax3[-1,0].set_xlabel('Carrying capacity ($\overline{R}$) $m_c$m$^{-3}$')
 
 
 
@@ -573,7 +573,7 @@ if settings['plot'] is True:
 
 
     fig5, ax5 = plt.subplots(2, 2,  sharex='col', sharey = 'row')
-    fig5.set_size_inches((12/2.54, 8/2.54))
+    fig5.set_size_inches((12/2.54, 12/2.54))
 
 #    ax5[0,0].text(0, 1.1, "Equilibrium consumption rate (1)", transform=ax5[0,0].transAxes)
 #    ax5[0,1].text(0, 1.1, "(2)", transform=ax5[0,1].transAxes)
@@ -586,7 +586,7 @@ if settings['plot'] is True:
 
     ax5[0, 0].plot(x_axis_res, func_nash_GM_res[0], color = tableau20[6], linestyle = '-')
     ax5[0, 0].plot(x_axis_res, func_static_values_res[0], color = tableau20[0], linestyle = '-')
-    ax5[-1, 0].set_xlabel('Carrying capacity ($\overline{R}$), \n $m_c\cdot m^{-3}$')
+    ax5[-1, 0].set_xlabel('Carrying capacity ($\overline{R}$), \n $m_c$ m$^{-3}$')
     ax5[0, 0].set_ylabel("Consumer \n Consumption/Max")
 
     ax5[1, 0].plot(x_axis_res, func_nash_GM_res[1], color = tableau20[6], linestyle = '-')
@@ -594,7 +594,7 @@ if settings['plot'] is True:
     ax5[1, 0].set_ylabel("Predator, \n Consumption/Max")
     ax5[0, 1].plot(x_axis_phi0, func_nash_GM_phi0[:,0], color = tableau20[6], linestyle = '-')
     ax5[0, 1].plot(x_axis_phi0, func_static_values_phi0[:,0], color = tableau20[0], linestyle = '-')
-    ax5[-1, 1].set_xlabel('Max predation pressure ($\\xi$) \n $month^{-1}$')
+    ax5[-1, 1].set_xlabel('Max predation pressure ($\\xi$) \n month$^{-1}$')
     #ax5[0, 1].set_ylabel("C consumption/Max")
 
     ax5[1, 1].plot(x_axis_phi0, func_nash_GM_phi0[:,1], color = tableau20[6], linestyle = '-')
@@ -610,7 +610,7 @@ if settings['plot'] is True:
 
 
     fig6, ax6 = plt.subplots(1, 2, sharey=True)
-    fig6.set_size_inches((12/2.54, 8/2.54))
+    fig6.set_size_inches((12/2.54, 6/2.54))
     #plt.title(
     #    "Functional response of predator, P " + str(np.round(pred_m, 2)) + " R " + str(np.round(res_m, 2)))
 #    ax6[0].text(0, 1.1, "Optimal consumption rate: predator,", transform=ax6[0].transAxes)
@@ -630,7 +630,7 @@ if settings['plot'] is True:
                     frp[:, k, 0] * frp[:, k, 1] * prey_variation + params_ext['nu0']), color = dc[k], linestyle = '-.',
              label="P consumption, optimal")
         #Changed to relative functional, Changed from 0.2 to accomodate theoretical-ecology
-    ax6[1].set_xlabel("Consumers $(C)$, \n $m_c\cdot m^{-3}$")
+    ax6[1].set_xlabel("Consumers $(C)$, \n $m_c$m$^{-3}$")
     ax6[0].set_ylabel("Consumption/Max")
     ax6[0].plot(resource_variation, resource_variation / (resource_variation + params_ext['nu0']),
              color = tableau20[0], linestyle = '-', label="C consumption, static")
@@ -641,7 +641,7 @@ if settings['plot'] is True:
                  color = dc[k], linestyle = '-.')
         #alpha = 0.5 #Changed from 0.2 to accomodate theoretical-ecology
         print(frc[:, k, 0] * resource_variation / (frc[:, k, 0] * resource_variation + params_ext['nu0']))
-    ax6[0].set_xlabel("Resource $(R)$, \n $m_c\cdot m^{-3}$")
+    ax6[0].set_xlabel("Resource $(R)$, \n $m_c$m$^{-3}$")
     fig6.tight_layout()
     if settings['linear'] is False:
         plt.savefig("Functional_response_consumer.pdf")
@@ -653,7 +653,7 @@ if settings['plot'] is True:
 
 
     fig8, ax8 = plt.subplots(6, 1, sharex=True, gridspec_kw={'height_ratios': [1, 0.5, 1, 0.5, 1, 0.5]})
-    fig8.set_size_inches((14/2.54, 16/2.54))
+    fig8.set_size_inches((12/2.54, 14/2.54))
 
     #ax8[0].text(0, 1.1, "Time Dynamics", transform=ax8[0].transAxes)
 
@@ -664,7 +664,7 @@ if settings['plot'] is True:
     ax8[4].text(1.05, 0.9, "(e)", transform=ax8[4].transAxes)
     ax8[5].text(1.05, 0.8, "(f)", transform=ax8[5].transAxes)
     #ax8[5].set_title('Population dynamics of optimal populations with bottom-up control')
-    ax8[0].set_ylabel('Resource, \n $m_c\cdot m^{-3}$')
+    ax8[0].set_ylabel('Resource, \n $m_c m^{-3}$')
     ax8[-1].set_xlabel('Months')
 
 
@@ -676,17 +676,17 @@ if settings['plot'] is True:
 
     ax8[1].fill_between(tim, strat[0, :], y2 = 0, alpha = 0.5,color = tableau20[6], linestyle = '-')
 
-    ax8[2].set_ylabel('Consumer, \n $10^{-1} m_c\cdot m^{-3}$')
+    ax8[2].set_ylabel('Consumer, \n $10^{-1} m_c$ m$^{-3}$')
 
     ax8[2].plot(tim, 10*sol[1, :], color =  tableau20[6], linestyle = '-')
     ax8[2].plot(tim, 10*sol_2[1, :], color = tableau20[0], linestyle = '-')
 
-    ax8[3].set_ylabel('$\\tau_p \cdot \\tau_c $')
+    ax8[3].set_ylabel('$\\tau_p  \\tau_c $')
 
     ax8[3].fill_between(tim, strat[1, :]*strat[0, :], y2 =0, alpha = 0.5, color = tableau20[6], linestyle = '-')
     ax8[3].set_ylim((0, 1))
 
-    ax8[4].set_ylabel('Predator, \n $10^{-3} m_c\cdot m^{-3}$')
+    ax8[4].set_ylabel('Predator, \n $10^{-3} m_c$ m$^{-3}$')
 
     ax8[4].plot(tim, 1000*sol[2, :], color = tableau20[6], linestyle = '-')
     ax8[4].plot(tim, 1000*sol_2[2, :], color = tableau20[0], linestyle = '-')

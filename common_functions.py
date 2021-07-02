@@ -1120,23 +1120,26 @@ def heatmap_plotter(data, image_name, ext):
 
     #divider = make_axes_locatable(ax)
     #cax = divider.append_axes("right", size="5%", pad=0.05)
-
+    plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+    plt.rc('font', size=8)
 
     # Set up figure and image grid
     fig = plt.figure(figsize=(12/2.54, 12/2.54))
 
     grid = ImageGrid(fig, 111,  # as in plt.subplot(111)
                      nrows_ncols=(1, len(data)),
-                     axes_pad=0.15,
+                     axes_pad=0.2,
                      share_all=True,
                      cbar_location="right",
                      cbar_mode="single",
                      cbar_size="5%",
-                     cbar_pad=0.05,
+                     cbar_pad=0.2,
                      )
 
     # Add data to image grid
     i = 0
+    lets =["(a)", "(b)"]
     for ax in grid:
         im = ax.imshow(data[i], vmin=0, vmax=1, cmap='Reds', extent=ext, origin = 'lower')
         x0, x1 = ax.get_xlim()
@@ -1144,6 +1147,7 @@ def heatmap_plotter(data, image_name, ext):
         ax.set_aspect((x1 - x0) / (y1 - y0))
         ax.set_xlabel("Carrying capacity ($\overline{R}$) \n $m_c\cdot m^{-3}$")
         ax.set_ylabel("Top predation pressure ($\\xi$) \n $month^{-1}$ ")
+        ax.text(1.01, 0.9, lets[i], transform=ax.transAxes)
 
         i += 1
 
